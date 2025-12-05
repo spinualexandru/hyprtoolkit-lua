@@ -1,0 +1,11 @@
+prefix=@PREFIX@
+includedir=@INCLUDE@
+libdir=@LIBDIR@
+
+Name: hyprtoolkit-lua
+URL: https://github.com/hyprwm/hyprtoolkit-lua
+Description: Lua bindings for hyprtoolkit
+Version: @HYPRTOOLKIT_LUA_VERSION@
+Requires: hyprtoolkit lua5.4
+Cflags: -I${includedir}
+Libs: -L${libdir} -lhyprtoolkit-lua
