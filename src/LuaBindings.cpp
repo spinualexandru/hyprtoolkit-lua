@@ -11,8 +11,8 @@ namespace Hyprtoolkit::Lua {
 #define HYPRTOOLKIT_LUA_VERSION "0.2.0"
 #endif
 
-#ifndef HYPRTOOLKIT_LUA_UPSTREAM_COMMIT
-#define HYPRTOOLKIT_LUA_UPSTREAM_COMMIT "67d9012d7d3a902a6a37e313fbfaf56ce7d3c53e"
+#ifndef HYPRTOOLKIT_LUA_UPSTREAM_BRANCH
+#define HYPRTOOLKIT_LUA_UPSTREAM_BRANCH "main"
 #endif
 
 static constexpr const char* MODULE_NAME         = "hyprtoolkit";
@@ -28,7 +28,7 @@ void registerAllBindings(sol::state& lua) {
     } else {
         module                        = lua.create_table();
         module["VERSION"]             = HYPRTOOLKIT_LUA_VERSION;
-        module["UPSTREAM_API_COMMIT"] = HYPRTOOLKIT_LUA_UPSTREAM_COMMIT;
+        module["UPSTREAM_API_BRANCH"] = HYPRTOOLKIT_LUA_UPSTREAM_BRANCH;
 
         registerTypes(module);
         registerCore(module);

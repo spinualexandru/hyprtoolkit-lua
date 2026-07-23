@@ -7,7 +7,7 @@ assert(_G.CWindow == nil)
 assert(_G.CColor == nil)
 
 assert(htk.VERSION == "0.2.0")
-assert(htk.UPSTREAM_API_COMMIT == "67d9012d7d3a902a6a37e313fbfaf56ce7d3c53e")
+assert(htk.UPSTREAM_API_BRANCH == "main")
 
 local requiredTables = {
     "Vector2D", "Box", "Color", "Gradient", "DynamicSize", "FontSize",

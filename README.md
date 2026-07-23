@@ -2,11 +2,10 @@
 
 C++23 Lua 5.4 bindings for Hyprtoolkit.
 
-Version 0.2 is a breaking API refresh for Hyprtoolkit commit
-`67d9012d7d3a902a6a37e313fbfaf56ce7d3c53e`. The released Hyprtoolkit
-`v0.5.4` tag is not compatible: the tag and current `main` report the same
-package version while exposing different public APIs, so CMake probes for the
-required current-main symbols.
+Version 0.2 is a breaking API refresh for Hyprtoolkit's development branch
+(`main`). The released Hyprtoolkit `v0.5.4` tag is not compatible: the tag and
+current `main` report the same package version while exposing different public
+APIs, so CMake probes for the required development-branch symbols.
 
 ## Lua module
 
@@ -16,7 +15,7 @@ Load the namespaced module:
 local htk = require("hyprtoolkit")
 
 print(htk.VERSION)              -- 0.2.0
-print(htk.UPSTREAM_API_COMMIT)  -- 67d9012d...
+print(htk.UPSTREAM_API_BRANCH)  -- main
 
 local backend = htk.Backend.create()
 local window = htk.WindowBuilder.begin()
@@ -53,7 +52,7 @@ exclusions.
 
 ## Requirements
 
-- Hyprtoolkit commit `67d9012d7d3a902a6a37e313fbfaf56ce7d3c53e`
+- Hyprtoolkit development branch (`main`)
 - Lua 5.4 exactly
 - CMake 3.19 or newer
 - A C++23 compiler

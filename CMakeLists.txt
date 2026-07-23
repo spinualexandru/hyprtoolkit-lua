@@ -48,9 +48,9 @@ unset(CMAKE_REQUIRED_INCLUDES)
 if(NOT HYPRTOOLKIT_HAS_MAIN_API)
   message(
     FATAL_ERROR
-      "hyprtoolkit-lua requires Hyprtoolkit main API at or after commit "
-      "67d9012d7d3a902a6a37e313fbfaf56ce7d3c53e. The v0.5.4 tag reports the "
-      "same package version but does not provide the required public API.")
+      "hyprtoolkit-lua requires Hyprtoolkit's development branch (main). The "
+      "v0.5.4 tag reports the same package version but does not provide the "
+      "required public API.")
 endif()
 
 include(FetchContent)
@@ -87,7 +87,7 @@ target_compile_options(
 target_compile_definitions(
   hyprtoolkit-lua
   PRIVATE HYPRTOOLKIT_LUA_VERSION="${HYPRTOOLKIT_LUA_VERSION}"
-          HYPRTOOLKIT_LUA_UPSTREAM_COMMIT="67d9012d7d3a902a6a37e313fbfaf56ce7d3c53e")
+          HYPRTOOLKIT_LUA_UPSTREAM_BRANCH="main")
 target_link_libraries(
   hyprtoolkit-lua
   PUBLIC PkgConfig::HYPRTOOLKIT ${LUA_LIBRARIES} sol2::sol2)

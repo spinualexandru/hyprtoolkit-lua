@@ -1,14 +1,13 @@
 # Lua API
 
-This matrix is audited against Hyprtoolkit commit
-`67d9012d7d3a902a6a37e313fbfaf56ce7d3c53e`. All names live below the table
-returned by `require("hyprtoolkit")`.
+This matrix is audited against Hyprtoolkit's development branch (`main`). All
+names live below the table returned by `require("hyprtoolkit")`.
 
 ## Module and values
 
 | Type or table | Constructors, members, and methods |
 | --- | --- |
-| Module | `VERSION`, `UPSTREAM_API_COMMIT` |
+| Module | `VERSION`, `UPSTREAM_API_BRANCH` |
 | `Vector2D` | `new([x, y])`; read/write `x`, `y`; `floor`, `round`, `clamp`, `distance`; `+`, `-`, `*`, `/`, `==`, string conversion |
 | `Box` | `new()`, `new(x, y, w, h)`, `new(pos, size)`; read/write `x`, `y`, `w`, `h`; `pos`, `size`, `middle`, `containsPoint`, `empty`, `intersection`, `expand`, `round`, `translate`, `scale` |
 | `Color` | `new()`, `new(r, g, b[, a])`, `fromHex`; read/write `r`, `g`, `b`, `a`; `getAsHex`, `asRGB`, `asHSL`, `asOkLab`, `brighten`, `darken`, `mix`, `stripA`; `+`, `-`, scalar `*`, `==`, string conversion |
@@ -102,10 +101,11 @@ array entries must be integers in `0..255`. Combobox and spinbox indices are
 always 1-based. Textbox cursor and selection results are upstream byte offsets;
 `selection()` returns two offsets.
 
-The pinned upstream headers declare `RowLayoutElement:rebuild()` and
-`ScrollAreaElement:rebuild()`, but commit `67d9012` does not define or export
-either symbol. Calling or binding them would make consumers fail to link, so
-they are the two documented exceptions pending an upstream implementation.
+The development-branch headers declare `RowLayoutElement:rebuild()` and
+`ScrollAreaElement:rebuild()`, but the corresponding library does not define
+or export either symbol. Calling or binding them would make consumers fail to
+link, so they are the two documented exceptions pending an upstream
+implementation.
 
 ## Windows
 
@@ -129,4 +129,3 @@ These facilities are not Lua-meaningful or are unsafe implementation details:
   results are returned as named Lua records.
 - Raw Hyprutils signal objects and static listeners; Lua receives
   disconnectable `SignalConnection` adapters.
-
