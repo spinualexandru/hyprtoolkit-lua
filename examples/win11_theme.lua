@@ -1,8 +1,11 @@
+local htk = require("hyprtoolkit")
+
 -- Windows 11 Theme Example for Hyprtoolkit Lua Bindings
 -- A comprehensive Fluent Design-inspired Settings app
 
-local backend = IBackend.create()
+local backend = htk.Backend.create()
 local palette = backend:getPalette()
+local connections = {}
 
 -- Detect dark mode from system palette
 local isDark = palette.background.r < 0.5
@@ -12,60 +15,60 @@ local colors
 if isDark then
     colors = {
         -- Dark theme - rich contrast
-        windowBg = CHyprColor.new(0.08, 0.08, 0.08, 1.0),        -- #141414 - Deep dark
-        micaBg = CHyprColor.new(0.11, 0.11, 0.11, 0.97),         -- Mica dark
-        cardBg = CHyprColor.new(0.15, 0.15, 0.15, 1.0),          -- #262626
-        cardHover = CHyprColor.new(0.18, 0.18, 0.18, 1.0),       -- #2E2E2E
-        cardBorder = CHyprColor.new(0.20, 0.20, 0.20, 1.0),      -- #333333
+        windowBg = htk.Color.new(0.08, 0.08, 0.08, 1.0),        -- #141414 - Deep dark
+        micaBg = htk.Color.new(0.11, 0.11, 0.11, 0.97),         -- Mica dark
+        cardBg = htk.Color.new(0.15, 0.15, 0.15, 1.0),          -- #262626
+        cardHover = htk.Color.new(0.18, 0.18, 0.18, 1.0),       -- #2E2E2E
+        cardBorder = htk.Color.new(0.20, 0.20, 0.20, 1.0),      -- #333333
 
-        heroBg = CHyprColor.new(0.12, 0.12, 0.12, 1.0),          -- Hero section
-        heroAccent = CHyprColor.new(0.0, 0.35, 0.65, 1.0),       -- Dark blue accent
+        heroBg = htk.Color.new(0.12, 0.12, 0.12, 1.0),          -- Hero section
+        heroAccent = htk.Color.new(0.0, 0.35, 0.65, 1.0),       -- Dark blue accent
 
-        text = CHyprColor.new(1.0, 1.0, 1.0, 1.0),               -- Pure white
-        textSecondary = CHyprColor.new(0.65, 0.65, 0.65, 1.0),   -- Muted
-        textTertiary = CHyprColor.new(0.45, 0.45, 0.45, 1.0),    -- Even more muted
+        text = htk.Color.new(1.0, 1.0, 1.0, 1.0),               -- Pure white
+        textSecondary = htk.Color.new(0.65, 0.65, 0.65, 1.0),   -- Muted
+        textTertiary = htk.Color.new(0.45, 0.45, 0.45, 1.0),    -- Even more muted
 
-        accent = CHyprColor.new(0.38, 0.67, 1.0, 1.0),           -- #60ABFF - Bright blue
-        accentDark = CHyprColor.new(0.0, 0.47, 0.84, 1.0),       -- #0078D4
-        accentLight = CHyprColor.new(0.6, 0.8, 1.0, 1.0),        -- Light accent
+        accent = htk.Color.new(0.38, 0.67, 1.0, 1.0),           -- #60ABFF - Bright blue
+        accentDark = htk.Color.new(0.0, 0.47, 0.84, 1.0),       -- #0078D4
+        accentLight = htk.Color.new(0.6, 0.8, 1.0, 1.0),        -- Light accent
 
-        success = CHyprColor.new(0.35, 0.75, 0.45, 1.0),         -- Green
-        warning = CHyprColor.new(1.0, 0.7, 0.2, 1.0),            -- Orange
-        error = CHyprColor.new(1.0, 0.4, 0.4, 1.0),              -- Red
+        success = htk.Color.new(0.35, 0.75, 0.45, 1.0),         -- Green
+        warning = htk.Color.new(1.0, 0.7, 0.2, 1.0),            -- Orange
+        error = htk.Color.new(1.0, 0.4, 0.4, 1.0),              -- Red
 
-        divider = CHyprColor.new(0.25, 0.25, 0.25, 1.0),
-        selected = CHyprColor.new(0.15, 0.25, 0.40, 1.0),        -- Blue tinted selection
+        divider = htk.Color.new(0.25, 0.25, 0.25, 1.0),
+        selected = htk.Color.new(0.15, 0.25, 0.40, 1.0),        -- Blue tinted selection
 
-        avatarBg = CHyprColor.new(0.0, 0.47, 0.84, 1.0),         -- Avatar background
+        avatarBg = htk.Color.new(0.0, 0.47, 0.84, 1.0),         -- Avatar background
     }
 else
     colors = {
         -- Light theme - clean and bright
-        windowBg = CHyprColor.new(0.95, 0.95, 0.95, 1.0),        -- #F2F2F2
-        micaBg = CHyprColor.new(0.98, 0.98, 0.98, 0.85),         -- Mica light
-        cardBg = CHyprColor.new(1.0, 1.0, 1.0, 1.0),             -- Pure white
-        cardHover = CHyprColor.new(0.97, 0.97, 0.97, 1.0),
-        cardBorder = CHyprColor.new(0.90, 0.90, 0.90, 1.0),
+        windowBg = htk.Color.new(0.95, 0.95, 0.95, 1.0),        -- #F2F2F2
+        micaBg = htk.Color.new(0.98, 0.98, 0.98, 0.85),         -- Mica light
+        cardBg = htk.Color.new(1.0, 1.0, 1.0, 1.0),             -- Pure white
+        cardHover = htk.Color.new(0.97, 0.97, 0.97, 1.0),
+        cardBorder = htk.Color.new(0.90, 0.90, 0.90, 1.0),
 
-        heroBg = CHyprColor.new(0.92, 0.95, 1.0, 1.0),           -- Light blue tint
-        heroAccent = CHyprColor.new(0.85, 0.92, 1.0, 1.0),
+        heroBg = htk.Color.new(0.92, 0.95, 1.0, 1.0),           -- Light blue tint
+        heroAccent = htk.Color.new(0.85, 0.92, 1.0, 1.0),
 
-        text = CHyprColor.new(0.1, 0.1, 0.1, 1.0),               -- Near black
-        textSecondary = CHyprColor.new(0.4, 0.4, 0.4, 1.0),
-        textTertiary = CHyprColor.new(0.6, 0.6, 0.6, 1.0),
+        text = htk.Color.new(0.1, 0.1, 0.1, 1.0),               -- Near black
+        textSecondary = htk.Color.new(0.4, 0.4, 0.4, 1.0),
+        textTertiary = htk.Color.new(0.6, 0.6, 0.6, 1.0),
 
-        accent = CHyprColor.new(0.0, 0.47, 0.84, 1.0),           -- #0078D4 - Windows Blue
-        accentDark = CHyprColor.new(0.0, 0.35, 0.65, 1.0),
-        accentLight = CHyprColor.new(0.85, 0.93, 1.0, 1.0),
+        accent = htk.Color.new(0.0, 0.47, 0.84, 1.0),           -- #0078D4 - Windows Blue
+        accentDark = htk.Color.new(0.0, 0.35, 0.65, 1.0),
+        accentLight = htk.Color.new(0.85, 0.93, 1.0, 1.0),
 
-        success = CHyprColor.new(0.1, 0.6, 0.2, 1.0),
-        warning = CHyprColor.new(0.9, 0.55, 0.0, 1.0),
-        error = CHyprColor.new(0.85, 0.2, 0.2, 1.0),
+        success = htk.Color.new(0.1, 0.6, 0.2, 1.0),
+        warning = htk.Color.new(0.9, 0.55, 0.0, 1.0),
+        error = htk.Color.new(0.85, 0.2, 0.2, 1.0),
 
-        divider = CHyprColor.new(0.85, 0.85, 0.85, 1.0),
-        selected = CHyprColor.new(0.90, 0.95, 1.0, 1.0),
+        divider = htk.Color.new(0.85, 0.85, 0.85, 1.0),
+        selected = htk.Color.new(0.90, 0.95, 1.0, 1.0),
 
-        avatarBg = CHyprColor.new(0.0, 0.47, 0.84, 1.0),
+        avatarBg = htk.Color.new(0.0, 0.47, 0.84, 1.0),
     }
 end
 
@@ -247,34 +250,34 @@ local bluetoothEnabled = true
 local wifiEnabled = true
 
 -- Create main window
-local window = CWindowBuilder.begin()
+local window = htk.WindowBuilder.begin()
     :appTitle("Settings")
     :appClass("hyprtoolkit-win11-settings")
-    :preferredSize(Vector2D.new(1100, 750))
-    :minSize(Vector2D.new(900, 600))
+    :preferredSize(htk.Vector2D.new(1100, 750))
+    :minSize(htk.Vector2D.new(900, 600))
     :commence()
 
 -- ============================================
 -- MAIN BACKGROUND
 -- ============================================
-local mainBg = CRectangleBuilder.begin()
+local mainBg = htk.RectangleBuilder.begin()
     :color(function() return colors.windowBg end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
-window.m_rootElement:addChild(mainBg)
+window.rootElement:addChild(mainBg)
 
 -- Main horizontal layout
-local mainRow = CRowLayoutBuilder.begin()
+local mainRow = htk.RowLayoutBuilder.begin()
     :gap(0)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
@@ -283,23 +286,23 @@ mainBg:addChild(mainRow)
 -- ============================================
 -- SIDEBAR (Navigation Pane)
 -- ============================================
-local sidebar = CRectangleBuilder.begin()
+local sidebar = htk.RectangleBuilder.begin()
     :color(function() return colors.micaBg end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(300, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.ABSOLUTE,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(300, 1)
     ))
     :commence()
 
 mainRow:addChild(sidebar)
 
-local sidebarLayout = CColumnLayoutBuilder.begin()
+local sidebarLayout = htk.ColumnLayoutBuilder.begin()
     :gap(2)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
@@ -309,12 +312,12 @@ sidebar:addChild(sidebarLayout)
 -- ============================================
 -- USER PROFILE SECTION (Top of sidebar)
 -- ============================================
-local profileCard = CRectangleBuilder.begin()
+local profileCard = htk.RectangleBuilder.begin()
     :color(function() return colors.cardBg end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(1, 72)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(1, 72)
     ))
     :rounding(8)
     :commence()
@@ -322,12 +325,12 @@ local profileCard = CRectangleBuilder.begin()
 sidebarLayout:addChild(profileCard)
 
 -- Profile row layout
-local profileRow = CRowLayoutBuilder.begin()
+local profileRow = htk.RowLayoutBuilder.begin()
     :gap(12)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
@@ -335,12 +338,12 @@ profileRow:setMargin(12)
 profileCard:addChild(profileRow)
 
 -- Avatar circle
-local avatar = CRectangleBuilder.begin()
+local avatar = htk.RectangleBuilder.begin()
     :color(function() return colors.avatarBg end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(48, 48)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.ABSOLUTE,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(48, 48)
     ))
     :rounding(24)
     :commence()
@@ -348,51 +351,51 @@ local avatar = CRectangleBuilder.begin()
 profileRow:addChild(avatar)
 
 -- Avatar initial
-local avatarText = CTextBuilder.begin()
+local avatarText = htk.TextBuilder.begin()
     :text("A")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_H2, 1.0))
-    :color(function() return CHyprColor.new(1, 1, 1, 1) end)
-    :align(FontAlignment.CENTER)
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.H2, 1.0))
+    :color(function() return htk.Color.new(1, 1, 1, 1) end)
+    :align(htk.FontAlignment.CENTER)
     :commence()
 
-avatarText:setPositionMode(PositionMode.ABSOLUTE)
-avatarText:setPositionFlag(PositionFlag.CENTER, true)
+avatarText:setPositionMode(htk.PositionMode.ABSOLUTE)
+avatarText:setPositionFlag(htk.PositionFlag.CENTER, true)
 avatar:addChild(avatarText)
 
 -- User info column
-local userInfo = CColumnLayoutBuilder.begin()
+local userInfo = htk.ColumnLayoutBuilder.begin()
     :gap(2)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_AUTO,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.AUTO,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
 profileRow:addChild(userInfo)
 
-local userName = CTextBuilder.begin()
+local userName = htk.TextBuilder.begin()
     :text(sysinfo.user)
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.1))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.1))
     :color(function() return colors.text end)
     :commence()
 
 userInfo:addChild(userName)
 
-local userEmail = CTextBuilder.begin()
+local userEmail = htk.TextBuilder.begin()
     :text(sysinfo.user .. "@" .. sysinfo.hostname)
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_SMALL, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.SMALL, 1.0))
     :color(function() return colors.textSecondary end)
     :commence()
 
 userInfo:addChild(userEmail)
 
 -- Spacer after profile
-local profileSpacer = CNullBuilder.begin()
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(0, 12)
+local profileSpacer = htk.NullBuilder.begin()
+    :size(htk.DynamicSize.new(
+        htk.SizeType.ABSOLUTE,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(0, 12)
     ))
     :commence()
 
@@ -401,12 +404,12 @@ sidebarLayout:addChild(profileSpacer)
 -- ============================================
 -- SEARCH BOX
 -- ============================================
-local searchBox = CRectangleBuilder.begin()
+local searchBox = htk.RectangleBuilder.begin()
     :color(function() return colors.cardBg end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(1, 40)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(1, 40)
     ))
     :rounding(20)
     :borderColor(function() return colors.cardBorder end)
@@ -415,23 +418,23 @@ local searchBox = CRectangleBuilder.begin()
 
 sidebarLayout:addChild(searchBox)
 
-local searchIcon = CTextBuilder.begin()
+local searchIcon = htk.TextBuilder.begin()
     :text("Search settings")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 0.95))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 0.95))
     :color(function() return colors.textTertiary end)
     :commence()
 
 searchIcon:setMargin(16)
-searchIcon:setPositionMode(PositionMode.ABSOLUTE)
-searchIcon:setPositionFlag(PositionFlag.VCENTER, true)
+searchIcon:setPositionMode(htk.PositionMode.ABSOLUTE)
+searchIcon:setPositionFlag(htk.PositionFlag.VCENTER, true)
 searchBox:addChild(searchIcon)
 
 -- Spacer after search
-local searchSpacer = CNullBuilder.begin()
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(0, 16)
+local searchSpacer = htk.NullBuilder.begin()
+    :size(htk.DynamicSize.new(
+        htk.SizeType.ABSOLUTE,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(0, 16)
     ))
     :commence()
 
@@ -457,18 +460,18 @@ local navItems = {
 for i, item in ipairs(navItems) do
     local isSelected = (i == 1)
 
-    local navItem = CRectangleBuilder.begin()
+    local navItem = htk.RectangleBuilder.begin()
         :color(function()
             if isSelected then
                 return colors.selected
             else
-                return CHyprColor.new(0, 0, 0, 0)
+                return htk.Color.new(0, 0, 0, 0)
             end
         end)
-        :size(CDynamicSize.new(
-            CDynamicSize.HT_SIZE_PERCENT,
-            CDynamicSize.HT_SIZE_ABSOLUTE,
-            Vector2D.new(1, 40)
+        :size(htk.DynamicSize.new(
+            htk.SizeType.PERCENT,
+            htk.SizeType.ABSOLUTE,
+            htk.Vector2D.new(1, 40)
         ))
         :rounding(6)
         :commence()
@@ -477,44 +480,44 @@ for i, item in ipairs(navItems) do
 
     -- Selection indicator bar
     if isSelected then
-        local indicator = CRectangleBuilder.begin()
+        local indicator = htk.RectangleBuilder.begin()
             :color(function() return colors.accent end)
-            :size(CDynamicSize.new(
-                CDynamicSize.HT_SIZE_ABSOLUTE,
-                CDynamicSize.HT_SIZE_ABSOLUTE,
-                Vector2D.new(3, 18)
+            :size(htk.DynamicSize.new(
+                htk.SizeType.ABSOLUTE,
+                htk.SizeType.ABSOLUTE,
+                htk.Vector2D.new(3, 18)
             ))
             :rounding(2)
             :commence()
 
         indicator:setMargin(4)
-        indicator:setPositionMode(PositionMode.ABSOLUTE)
-        indicator:setPositionFlag(PositionFlag.VCENTER, true)
+        indicator:setPositionMode(htk.PositionMode.ABSOLUTE)
+        indicator:setPositionFlag(htk.PositionFlag.VCENTER, true)
         navItem:addChild(indicator)
     end
 
-    local navLabel = CTextBuilder.begin()
+    local navLabel = htk.TextBuilder.begin()
         :text(item.label)
-        :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+        :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
         :color(function() return colors.text end)
         :commence()
 
     navLabel:setMargin(16)
-    navLabel:setPositionMode(PositionMode.ABSOLUTE)
-    navLabel:setPositionFlag(PositionFlag.VCENTER, true)
+    navLabel:setPositionMode(htk.PositionMode.ABSOLUTE)
+    navLabel:setPositionFlag(htk.PositionFlag.VCENTER, true)
     navItem:addChild(navLabel)
 end
 
 -- ============================================
 -- CONTENT AREA (Scrollable)
 -- ============================================
-local scrollArea = CScrollAreaBuilder.begin()
+local scrollArea = htk.ScrollAreaBuilder.begin()
     :scrollX(false)
     :scrollY(true)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(0.3, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(0.3, 1)
     ))
     :commence()
 
@@ -522,43 +525,43 @@ scrollArea:setGrow(true)
 mainRow:addChild(scrollArea)
 
 -- Content column - use 90% width with ABSOLUTE + HCENTER (per C++ test pattern)
-local contentScroll = CColumnLayoutBuilder.begin()
+local contentScroll = htk.ColumnLayoutBuilder.begin()
     :gap(16)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(0.9, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(0.9, 1)
     ))
     :commence()
 
 contentScroll:setMargin(16)
-contentScroll:setPositionMode(PositionMode.ABSOLUTE)
-contentScroll:setPositionFlag(PositionFlag.HCENTER, true)
+contentScroll:setPositionMode(htk.PositionMode.ABSOLUTE)
+contentScroll:setPositionFlag(htk.PositionFlag.HCENTER, true)
 scrollArea:addChild(contentScroll)
 
 -- ============================================
 -- PAGE HEADER
 -- ============================================
-local pageTitle = CTextBuilder.begin()
+local pageTitle = htk.TextBuilder.begin()
     :text("System")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_H1, 1.4))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.H1, 1.4))
     :color(function() return colors.text end)
     :commence()
 
-pageTitle:setPositionMode(PositionMode.ABSOLUTE)
-pageTitle:setPositionFlag(PositionFlag.HCENTER, true)
+pageTitle:setPositionMode(htk.PositionMode.ABSOLUTE)
+pageTitle:setPositionFlag(htk.PositionFlag.HCENTER, true)
 
 contentScroll:addChild(pageTitle)
 
 -- ============================================
 -- HERO CARD (Device Info)
 -- ============================================
-local heroCard = CRectangleBuilder.begin()
+local heroCard = htk.RectangleBuilder.begin()
     :color(function() return colors.heroBg end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(1, 120)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(1, 120)
     ))
     :rounding(12)
     :borderColor(function() return colors.cardBorder end)
@@ -567,79 +570,79 @@ local heroCard = CRectangleBuilder.begin()
 
 contentScroll:addChild(heroCard)
 
-local heroContent = CRowLayoutBuilder.begin()
+local heroContent = htk.RowLayoutBuilder.begin()
     :gap(24)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_AUTO,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.AUTO,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
 heroContent:setMargin(24)
-heroContent:setPositionMode(PositionMode.ABSOLUTE)
-heroContent:setPositionFlag(PositionFlag.CENTER, true)
+heroContent:setPositionMode(htk.PositionMode.ABSOLUTE)
+heroContent:setPositionFlag(htk.PositionFlag.CENTER, true)
 heroCard:addChild(heroContent)
 
 -- Device icon placeholder (large circle)
-local deviceIcon = CRectangleBuilder.begin()
+local deviceIcon = htk.RectangleBuilder.begin()
     :color(function() return colors.accent end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(72, 72)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.ABSOLUTE,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(72, 72)
     ))
     :rounding(12)
     :commence()
 
-deviceIcon:setPositionMode(PositionMode.ABSOLUTE)
-deviceIcon:setPositionFlag(PositionFlag.VCENTER, true)
+deviceIcon:setPositionMode(htk.PositionMode.ABSOLUTE)
+deviceIcon:setPositionFlag(htk.PositionFlag.VCENTER, true)
 heroContent:addChild(deviceIcon)
 
-local deviceIconText = CTextBuilder.begin()
+local deviceIconText = htk.TextBuilder.begin()
     :text("PC")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_H2, 1.0))
-    :color(function() return CHyprColor.new(1, 1, 1, 1) end)
-    :align(FontAlignment.CENTER)
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.H2, 1.0))
+    :color(function() return htk.Color.new(1, 1, 1, 1) end)
+    :align(htk.FontAlignment.CENTER)
     :commence()
 
-deviceIconText:setPositionMode(PositionMode.ABSOLUTE)
-deviceIconText:setPositionFlag(PositionFlag.CENTER, true)
+deviceIconText:setPositionMode(htk.PositionMode.ABSOLUTE)
+deviceIconText:setPositionFlag(htk.PositionFlag.CENTER, true)
 deviceIcon:addChild(deviceIconText)
 
 -- Device info
-local deviceInfo = CColumnLayoutBuilder.begin()
+local deviceInfo = htk.ColumnLayoutBuilder.begin()
     :gap(6)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_AUTO,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.AUTO,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
-deviceInfo:setPositionMode(PositionMode.ABSOLUTE)
-deviceInfo:setPositionFlag(PositionFlag.VCENTER, true)
+deviceInfo:setPositionMode(htk.PositionMode.ABSOLUTE)
+deviceInfo:setPositionFlag(htk.PositionFlag.VCENTER, true)
 heroContent:addChild(deviceInfo)
 
-local deviceName = CTextBuilder.begin()
+local deviceName = htk.TextBuilder.begin()
     :text(sysinfo.hostname:upper())
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_H3, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.H3, 1.0))
     :color(function() return colors.text end)
     :commence()
 
 deviceInfo:addChild(deviceName)
 
-local deviceDetails = CTextBuilder.begin()
+local deviceDetails = htk.TextBuilder.begin()
     :text(sysinfo.distro .. "  |  " .. sysinfo.desktop)
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_SMALL, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.SMALL, 1.0))
     :color(function() return colors.textSecondary end)
     :commence()
 
 deviceInfo:addChild(deviceDetails)
 
-local uptimeText = CTextBuilder.begin()
+local uptimeText = htk.TextBuilder.begin()
     :text("Uptime: " .. sysinfo.uptime)
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function() return colors.accent end)
     :commence()
 
@@ -648,9 +651,9 @@ deviceInfo:addChild(uptimeText)
 -- ============================================
 -- SYSTEM MONITOR WIDGETS
 -- ============================================
-local monitorLabel = CTextBuilder.begin()
+local monitorLabel = htk.TextBuilder.begin()
     :text("System Monitor")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function() return colors.textSecondary end)
     :commence()
 
@@ -658,12 +661,12 @@ contentScroll:addChild(monitorLabel)
 
 -- Helper function to create a stat widget with progress bar
 local function createStatWidget(title, value, percent, accentColor)
-    local widget = CRectangleBuilder.begin()
+    local widget = htk.RectangleBuilder.begin()
         :color(function() return colors.cardBg end)
-        :size(CDynamicSize.new(
-            CDynamicSize.HT_SIZE_ABSOLUTE,
-            CDynamicSize.HT_SIZE_ABSOLUTE,
-            Vector2D.new(140, 100)
+        :size(htk.DynamicSize.new(
+            htk.SizeType.ABSOLUTE,
+            htk.SizeType.ABSOLUTE,
+            htk.Vector2D.new(140, 100)
         ))
         :rounding(12)
         :borderColor(function() return colors.cardBorder end)
@@ -671,87 +674,87 @@ local function createStatWidget(title, value, percent, accentColor)
         :commence()
 
     -- Title (positioned at top)
-    local titleText = CTextBuilder.begin()
+    local titleText = htk.TextBuilder.begin()
         :text(title)
-        :fontSize(CFontSize.new(CFontSize.HT_FONT_SMALL, 1.0))
+        :fontSize(htk.FontSize.new(htk.FontSizeBase.SMALL, 1.0))
         :color(function() return colors.textSecondary end)
         :commence()
 
     titleText:setMargin(12)
-    titleText:setPositionMode(PositionMode.ABSOLUTE)
-    titleText:setPositionFlag(PositionFlag.TOP, true)
-    titleText:setPositionFlag(PositionFlag.LEFT, true)
+    titleText:setPositionMode(htk.PositionMode.ABSOLUTE)
+    titleText:setPositionFlag(htk.PositionFlag.TOP, true)
+    titleText:setPositionFlag(htk.PositionFlag.LEFT, true)
     widget:addChild(titleText)
 
     -- Value (large, centered)
-    local valueText = CTextBuilder.begin()
+    local valueText = htk.TextBuilder.begin()
         :text(value)
-        :fontSize(CFontSize.new(CFontSize.HT_FONT_H2, 1.0))
+        :fontSize(htk.FontSize.new(htk.FontSizeBase.H2, 1.0))
         :color(function() return accentColor or colors.accent end)
         :commence()
 
-    valueText:setPositionMode(PositionMode.ABSOLUTE)
-    valueText:setPositionFlag(PositionFlag.CENTER, true)
+    valueText:setPositionMode(htk.PositionMode.ABSOLUTE)
+    valueText:setPositionFlag(htk.PositionFlag.CENTER, true)
     widget:addChild(valueText)
 
     -- Progress bar background (at bottom)
-    local barBg = CRectangleBuilder.begin()
+    local barBg = htk.RectangleBuilder.begin()
         :color(function() return colors.cardBorder end)
-        :size(CDynamicSize.new(
-            CDynamicSize.HT_SIZE_ABSOLUTE,
-            CDynamicSize.HT_SIZE_ABSOLUTE,
-            Vector2D.new(116, 6)
+        :size(htk.DynamicSize.new(
+            htk.SizeType.ABSOLUTE,
+            htk.SizeType.ABSOLUTE,
+            htk.Vector2D.new(116, 6)
         ))
         :rounding(3)
         :commence()
 
     barBg:setMargin(12)
-    barBg:setPositionMode(PositionMode.ABSOLUTE)
-    barBg:setPositionFlag(PositionFlag.BOTTOM, true)
-    barBg:setPositionFlag(PositionFlag.LEFT, true)
+    barBg:setPositionMode(htk.PositionMode.ABSOLUTE)
+    barBg:setPositionFlag(htk.PositionFlag.BOTTOM, true)
+    barBg:setPositionFlag(htk.PositionFlag.LEFT, true)
     widget:addChild(barBg)
 
     -- Progress bar fill
     local fillWidth = math.max(1, math.floor(116 * percent / 100))
-    local barFill = CRectangleBuilder.begin()
+    local barFill = htk.RectangleBuilder.begin()
         :color(function() return accentColor or colors.accent end)
-        :size(CDynamicSize.new(
-            CDynamicSize.HT_SIZE_ABSOLUTE,
-            CDynamicSize.HT_SIZE_PERCENT,
-            Vector2D.new(fillWidth, 1)
+        :size(htk.DynamicSize.new(
+            htk.SizeType.ABSOLUTE,
+            htk.SizeType.PERCENT,
+            htk.Vector2D.new(fillWidth, 1)
         ))
         :rounding(3)
         :commence()
 
-    barFill:setPositionMode(PositionMode.ABSOLUTE)
+    barFill:setPositionMode(htk.PositionMode.ABSOLUTE)
     barBg:addChild(barFill)
 
     return widget
 end
 
 -- Stats container (rectangle wrapper for row layout)
-local statsContainer = CRectangleBuilder.begin()
-    :color(function() return CHyprColor.new(0, 0, 0, 0) end)  -- Transparent
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(1, 120)
+local statsContainer = htk.RectangleBuilder.begin()
+    :color(function() return htk.Color.new(0, 0, 0, 0) end)  -- Transparent
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(1, 120)
     ))
     :commence()
 
 contentScroll:addChild(statsContainer)
 
 -- Stats row
-local statsRow = CRowLayoutBuilder.begin()
+local statsRow = htk.RowLayoutBuilder.begin()
     :gap(12)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
-statsRow:setPositionMode(PositionMode.ABSOLUTE)
+statsRow:setPositionMode(htk.PositionMode.ABSOLUTE)
 statsContainer:addChild(statsRow)
 
 -- CPU Load widget (use load average as percentage - cap at 100)
@@ -760,7 +763,7 @@ statsRow:addChild(createStatWidget(
     "CPU LOAD",
     string.format("%.1f", sysinfo.load.one),
     cpuPercent,
-    CHyprColor.new(0.3, 0.7, 1.0, 1.0)  -- Blue
+    htk.Color.new(0.3, 0.7, 1.0, 1.0)  -- Blue
 ))
 
 -- Memory widget
@@ -768,18 +771,18 @@ statsRow:addChild(createStatWidget(
     "MEMORY",
     string.format("%d%%", sysinfo.memory.percent),
     sysinfo.memory.percent,
-    CHyprColor.new(0.6, 0.4, 0.9, 1.0)  -- Purple
+    htk.Color.new(0.6, 0.4, 0.9, 1.0)  -- Purple
 ))
 
 -- Battery widget (or uptime if no battery)
 if sysinfo.battery.present then
     local batColor
     if sysinfo.battery.percent > 50 then
-        batColor = CHyprColor.new(0.3, 0.8, 0.4, 1.0)  -- Green
+        batColor = htk.Color.new(0.3, 0.8, 0.4, 1.0)  -- Green
     elseif sysinfo.battery.percent > 20 then
-        batColor = CHyprColor.new(1.0, 0.7, 0.2, 1.0)  -- Orange
+        batColor = htk.Color.new(1.0, 0.7, 0.2, 1.0)  -- Orange
     else
-        batColor = CHyprColor.new(1.0, 0.3, 0.3, 1.0)  -- Red
+        batColor = htk.Color.new(1.0, 0.3, 0.3, 1.0)  -- Red
     end
     statsRow:addChild(createStatWidget(
         "BATTERY",
@@ -794,7 +797,7 @@ else
         "UPTIME",
         sysinfo.uptime,
         math.min(100, uptimeHours),  -- 100 hours = full bar
-        CHyprColor.new(0.3, 0.8, 0.4, 1.0)
+        htk.Color.new(0.3, 0.8, 0.4, 1.0)
     ))
 end
 
@@ -803,31 +806,31 @@ statsRow:addChild(createStatWidget(
     "LOAD AVG",
     string.format("%.2f", sysinfo.load.fifteen),
     math.min(100, sysinfo.load.fifteen * 25),
-    CHyprColor.new(1.0, 0.6, 0.3, 1.0)  -- Orange
+    htk.Color.new(1.0, 0.6, 0.3, 1.0)  -- Orange
 ))
 
 -- ============================================
 -- SETTINGS CARDS
 -- ============================================
 local function createSettingCard(title, description, hasToggle, toggleState, hasSlider, sliderValue)
-    local card = CRectangleBuilder.begin()
+    local card = htk.RectangleBuilder.begin()
         :color(function() return colors.cardBg end)
-        :size(CDynamicSize.new(
-            CDynamicSize.HT_SIZE_PERCENT,
-            CDynamicSize.HT_SIZE_ABSOLUTE,
-            Vector2D.new(1, hasSlider and 80 or 64)
+        :size(htk.DynamicSize.new(
+            htk.SizeType.PERCENT,
+            htk.SizeType.ABSOLUTE,
+            htk.Vector2D.new(1, hasSlider and 80 or 64)
         ))
         :rounding(8)
         :borderColor(function() return colors.cardBorder end)
         :borderThickness(1)
         :commence()
 
-    local cardContent = CRowLayoutBuilder.begin()
+    local cardContent = htk.RowLayoutBuilder.begin()
         :gap(16)
-        :size(CDynamicSize.new(
-            CDynamicSize.HT_SIZE_PERCENT,
-            CDynamicSize.HT_SIZE_PERCENT,
-            Vector2D.new(1, 1)
+        :size(htk.DynamicSize.new(
+            htk.SizeType.PERCENT,
+            htk.SizeType.PERCENT,
+            htk.Vector2D.new(1, 1)
         ))
         :commence()
 
@@ -835,32 +838,32 @@ local function createSettingCard(title, description, hasToggle, toggleState, has
     card:addChild(cardContent)
 
     -- Text column
-    local textCol = CColumnLayoutBuilder.begin()
+    local textCol = htk.ColumnLayoutBuilder.begin()
         :gap(4)
-        :size(CDynamicSize.new(
-            CDynamicSize.HT_SIZE_PERCENT,
-            CDynamicSize.HT_SIZE_AUTO,
-            Vector2D.new(1, 1)
+        :size(htk.DynamicSize.new(
+            htk.SizeType.PERCENT,
+            htk.SizeType.AUTO,
+            htk.Vector2D.new(1, 1)
         ))
         :commence()
 
     textCol:setGrow(true)
-    textCol:setPositionMode(PositionMode.ABSOLUTE)
-    textCol:setPositionFlag(PositionFlag.VCENTER, true)
+    textCol:setPositionMode(htk.PositionMode.ABSOLUTE)
+    textCol:setPositionFlag(htk.PositionFlag.VCENTER, true)
     cardContent:addChild(textCol)
 
-    local titleText = CTextBuilder.begin()
+    local titleText = htk.TextBuilder.begin()
         :text(title)
-        :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+        :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
         :color(function() return colors.text end)
         :commence()
 
     textCol:addChild(titleText)
 
     if description then
-        local descText = CTextBuilder.begin()
+        local descText = htk.TextBuilder.begin()
             :text(description)
-            :fontSize(CFontSize.new(CFontSize.HT_FONT_SMALL, 1.0))
+            :fontSize(htk.FontSize.new(htk.FontSizeBase.SMALL, 1.0))
             :color(function() return colors.textSecondary end)
             :commence()
 
@@ -868,14 +871,14 @@ local function createSettingCard(title, description, hasToggle, toggleState, has
     end
 
     if hasSlider then
-        local slider = CSliderBuilder.begin()
+        local slider = htk.SliderBuilder.begin()
             :min(0)
             :max(100)
             :val(sliderValue or 75)
-            :size(CDynamicSize.new(
-                CDynamicSize.HT_SIZE_PERCENT,
-                CDynamicSize.HT_SIZE_ABSOLUTE,
-                Vector2D.new(0.5, 8)
+            :size(htk.DynamicSize.new(
+                htk.SizeType.PERCENT,
+                htk.SizeType.ABSOLUTE,
+                htk.Vector2D.new(0.5, 8)
             ))
             :onChanged(function(s, val)
                 print("[Settings] " .. title .. ": " .. math.floor(val) .. "%")
@@ -886,26 +889,26 @@ local function createSettingCard(title, description, hasToggle, toggleState, has
     end
 
     if hasToggle then
-        local toggle = CCheckboxBuilder.begin()
+        local toggle = htk.CheckboxBuilder.begin()
             :toggled(toggleState or false)
             :onToggled(function(cb, state)
                 print("[Settings] " .. title .. ": " .. tostring(state))
             end)
             :commence()
 
-        toggle:setPositionMode(PositionMode.ABSOLUTE)
-        toggle:setPositionFlag(PositionFlag.VCENTER, true)
+        toggle:setPositionMode(htk.PositionMode.ABSOLUTE)
+        toggle:setPositionFlag(htk.PositionFlag.VCENTER, true)
         cardContent:addChild(toggle)
     else
         -- Arrow indicator
-        local arrow = CTextBuilder.begin()
+        local arrow = htk.TextBuilder.begin()
             :text(">")
-            :fontSize(CFontSize.new(CFontSize.HT_FONT_H3, 1.0))
+            :fontSize(htk.FontSize.new(htk.FontSizeBase.H3, 1.0))
             :color(function() return colors.textTertiary end)
             :commence()
 
-        arrow:setPositionMode(PositionMode.ABSOLUTE)
-        arrow:setPositionFlag(PositionFlag.VCENTER, true)
+        arrow:setPositionMode(htk.PositionMode.ABSOLUTE)
+        arrow:setPositionFlag(htk.PositionFlag.VCENTER, true)
         cardContent:addChild(arrow)
     end
 
@@ -915,9 +918,9 @@ end
 -- ============================================
 -- PROCESSOR SECTION
 -- ============================================
-local cpuLabel = CTextBuilder.begin()
+local cpuLabel = htk.TextBuilder.begin()
     :text("Processor")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function() return colors.textSecondary end)
     :commence()
 
@@ -940,9 +943,9 @@ contentScroll:addChild(createSettingCard(
 -- ============================================
 -- MEMORY SECTION
 -- ============================================
-local memLabel = CTextBuilder.begin()
+local memLabel = htk.TextBuilder.begin()
     :text("Memory")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function() return colors.textSecondary end)
     :commence()
 
@@ -959,9 +962,9 @@ contentScroll:addChild(createSettingCard(
 -- ============================================
 -- POWER & BATTERY SECTION
 -- ============================================
-local powerLabel = CTextBuilder.begin()
+local powerLabel = htk.TextBuilder.begin()
     :text("Power & battery")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function() return colors.textSecondary end)
     :commence()
 
@@ -987,9 +990,9 @@ contentScroll:addChild(createSettingCard("Battery saver", "Extend battery life w
 -- ============================================
 -- DISPLAY SECTION
 -- ============================================
-local displayLabel = CTextBuilder.begin()
+local displayLabel = htk.TextBuilder.begin()
     :text("Display")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function() return colors.textSecondary end)
     :commence()
 
@@ -1001,13 +1004,13 @@ contentScroll:addChild(createSettingCard("Night light", "Reduce blue light in th
 -- ============================================
 -- EVENT HANDLERS
 -- ============================================
-window:onCloseRequest(function()
+connections[#connections + 1] = window:onCloseRequest(function()
     print("[Settings] Closing...")
     window:close()
     backend:destroy()
 end)
 
-window:onKeyboardKey(function(event)
+connections[#connections + 1] = window:onKeyboardKey(function(event)
     if event.down and event.xkbKeysym == 65307 then
         window:close()
         backend:destroy()

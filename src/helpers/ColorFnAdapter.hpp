@@ -1,42 +1,53 @@
 #pragma once
 
-#include <sol/sol.hpp>
 #include <hyprtoolkit/palette/Color.hpp>
+#include <sol/sol.hpp>
+
 #include <functional>
+#include <optional>
+#include <string>
+#include <string_view>
+
+#include "CallbackAdapter.hpp"
 
 namespace Hyprtoolkit::Lua {
 
 using colorFn = std::function<CHyprColor()>;
 
-// Convert a Lua object (either a CHyprColor or a function) to colorFn
-inline colorFn luaToColorFn(sol::object obj) {
+inline colorFn luaToColorFn(const sol::object& obj, std::string_view context = "color callback") {
     if (obj.is<CHyprColor>()) {
-        // Static color - capture by value
-        CHyprColor color = obj.as<CHyprColor>();
-        return [color]() { return color; };
-    } else if (obj.is<sol::function>()) {
-        // Dynamic color function
-        sol::protected_function fn = obj.as<sol::function>();
-        return [fn]() -> CHyprColor {
-            sol::protected_function_result result = fn();
-            if (result.valid()) {
-                return result.get<CHyprColor>();
-            }
-            // Return black on error
-            fprintf(stderr, "[Lua] colorFn error: %s\n", sol::error(result).what());
-            return CHyprColor(0.0, 0.0, 0.0, 1.0);
+        const CHyprColor color = obj.as<CHyprColor>();
+        return [color]() {
+            return color;
         };
     }
-    // Default to black
-    return []() { return CHyprColor(0.0, 0.0, 0.0, 1.0); };
+
+    if (obj.is<sol::protected_function>()) {
+        sol::protected_function function = obj.as<sol::protected_function>();
+        return [function = std::move(function), context = std::string{context}]() -> CHyprColor {
+            sol::protected_function_result result = function();
+            if (!result.valid()) {
+                const sol::error error = result;
+                reportLuaCallbackError(context, error.what());
+                return CHyprColor{0.F, 0.F, 0.F, 1.F};
+            }
+
+            try {
+                return result.get<CHyprColor>();
+            } catch (const std::exception& error) {
+                reportLuaCallbackError(context, error.what());
+                return CHyprColor{0.F, 0.F, 0.F, 1.F};
+            }
+        };
+    }
+
+    throw sol::error("expected a Color or function returning Color");
 }
 
-// Convert a Lua object to an optional colorFn (returns nullopt if nil)
-inline std::optional<colorFn> luaToOptionalColorFn(sol::object obj) {
-    if (obj.is<sol::nil_t>() || !obj.valid()) {
+inline std::optional<colorFn> luaToOptionalColorFn(const sol::object& obj, std::string_view context = "color callback") {
+    if (obj.is<sol::nil_t>() || !obj.valid())
         return std::nullopt;
-    }
-    return luaToColorFn(obj);
+    return luaToColorFn(obj, context);
 }
 
 } // namespace Hyprtoolkit::Lua

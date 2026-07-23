@@ -1,181 +1,84 @@
-#include <sol/sol.hpp>
-#include <hyprtoolkit/element/Element.hpp>
-#include <hyprtoolkit/element/Text.hpp>
-#include <hyprtoolkit/element/Button.hpp>
-#include <hyprtoolkit/element/Textbox.hpp>
-#include <hyprtoolkit/element/Checkbox.hpp>
-#include <hyprtoolkit/element/Slider.hpp>
-#include <hyprtoolkit/element/Combobox.hpp>
-#include <hyprtoolkit/element/Spinbox.hpp>
-#include <hyprtoolkit/element/Rectangle.hpp>
-#include <hyprtoolkit/element/ColumnLayout.hpp>
-#include <hyprtoolkit/element/RowLayout.hpp>
-#include <hyprtoolkit/element/ScrollArea.hpp>
-#include <hyprtoolkit/element/Image.hpp>
-#include <hyprtoolkit/element/Null.hpp>
-#include <hyprtoolkit/element/Line.hpp>
 #include <hyprtoolkit/core/Input.hpp>
+#include <hyprtoolkit/element/Element.hpp>
+#include <hyprtoolkit/types/PointerShape.hpp>
+#include <sol/sol.hpp>
 
-#include "../helpers/SmartPtrAdapter.hpp"
 #include "../helpers/CallbackAdapter.hpp"
+#include "../helpers/ElementAdapter.hpp"
+#include "../helpers/SmartPtrAdapter.hpp"
 
-using namespace Hyprutils::Memory;
 using namespace Hyprutils::Math;
 
 namespace Hyprtoolkit::Lua {
 
-void registerElement(sol::state& lua) {
-    // Position mode enum
-    lua.new_enum<IElement::ePositionMode>("PositionMode",
-        {
-            {"ABSOLUTE", IElement::HT_POSITION_ABSOLUTE},
-            {"AUTO", IElement::HT_POSITION_AUTO}
-        }
-    );
+void registerElement(sol::table& module) {
+    module.new_enum<IElement::ePositionMode>(
+        "PositionMode", {{"ABSOLUTE", IElement::HT_POSITION_ABSOLUTE}, {"AUTO", IElement::HT_POSITION_AUTO}});
+    module.new_enum<IElement::ePositionFlag>(
+        "PositionFlag",
+        {{"HCENTER", IElement::HT_POSITION_FLAG_HCENTER}, {"VCENTER", IElement::HT_POSITION_FLAG_VCENTER}, {"CENTER", IElement::HT_POSITION_FLAG_CENTER},
+         {"LEFT", IElement::HT_POSITION_FLAG_LEFT}, {"RIGHT", IElement::HT_POSITION_FLAG_RIGHT}, {"TOP", IElement::HT_POSITION_FLAG_TOP},
+         {"BOTTOM", IElement::HT_POSITION_FLAG_BOTTOM}, {"ALL", IElement::HT_POSITION_FLAG_ALL}});
+    module.new_enum<ePointerShape>(
+        "PointerShape",
+        {{"ARROW", HT_POINTER_ARROW}, {"POINTER", HT_POINTER_POINTER}, {"TEXT", HT_POINTER_TEXT}, {"RESIZE_NS", HT_POINTER_RESIZE_NS}, {"RESIZE_EW", HT_POINTER_RESIZE_EW},
+         {"RESIZE_NESW", HT_POINTER_RESIZE_NESW}, {"RESIZE_NWSE", HT_POINTER_RESIZE_NWSE}});
 
-    // Position flag enum
-    lua.new_enum<IElement::ePositionFlag>("PositionFlag",
-        {
-            {"HCENTER", IElement::HT_POSITION_FLAG_HCENTER},
-            {"VCENTER", IElement::HT_POSITION_FLAG_VCENTER},
-            {"CENTER", IElement::HT_POSITION_FLAG_CENTER},
-            {"LEFT", IElement::HT_POSITION_FLAG_LEFT},
-            {"RIGHT", IElement::HT_POSITION_FLAG_RIGHT},
-            {"TOP", IElement::HT_POSITION_FLAG_TOP},
-            {"BOTTOM", IElement::HT_POSITION_FLAG_BOTTOM},
-            {"ALL", IElement::HT_POSITION_FLAG_ALL}
-        }
-    );
-
-    lua.new_usertype<IElement>("IElement",
-        sol::no_constructor,
-
-        // Size and position
-        "size", &IElement::size,
-        "posFromParent", &IElement::posFromParent,
-        "reposition", &IElement::reposition,
-        "forceReposition", &IElement::forceReposition,
-
-        // Position mode and flags
-        "setPositionMode", &IElement::setPositionMode,
-        "setPositionFlag", &IElement::setPositionFlag,
-        "setAbsolutePosition", &IElement::setAbsolutePosition,
-
-        // Child management - use lambda to handle derived element types
-        "addChild", [](IElement* self, sol::object child) {
-            // Try to extract as CSharedPointer<IElement>
-            if (child.is<CSharedPointer<IElement>>()) {
-                self->addChild(child.as<CSharedPointer<IElement>>());
-                return;
-            }
-            // Try common element types that inherit from IElement
-            // The sol::bases doesn't automatically convert smart pointers
-            #define TRY_ELEMENT_TYPE(T) \
-                if (child.is<CSharedPointer<T>>()) { \
-                    auto ptr = child.as<CSharedPointer<T>>(); \
-                    self->addChild(CSharedPointer<IElement>(ptr)); \
-                    return; \
-                }
-
-            // All element types need to be listed here for proper conversion
-            TRY_ELEMENT_TYPE(CTextElement)
-            TRY_ELEMENT_TYPE(CButtonElement)
-            TRY_ELEMENT_TYPE(CTextboxElement)
-            TRY_ELEMENT_TYPE(CCheckboxElement)
-            TRY_ELEMENT_TYPE(CSliderElement)
-            TRY_ELEMENT_TYPE(CComboboxElement)
-            TRY_ELEMENT_TYPE(CSpinboxElement)
-            TRY_ELEMENT_TYPE(CRectangleElement)
-            TRY_ELEMENT_TYPE(CColumnLayoutElement)
-            TRY_ELEMENT_TYPE(CRowLayoutElement)
-            TRY_ELEMENT_TYPE(CScrollAreaElement)
-            TRY_ELEMENT_TYPE(CImageElement)
-            TRY_ELEMENT_TYPE(CNullElement)
-            TRY_ELEMENT_TYPE(CLineElement)
-
-            #undef TRY_ELEMENT_TYPE
-
-            throw std::runtime_error("addChild: argument is not a valid element type");
+    module.new_usertype<IElement>(
+        "Element", sol::no_constructor, "size", &IElement::size, "posFromParent", &IElement::posFromParent, "reposition",
+        sol::overload([](IElement& self, const CBox& box) { self.reposition(box); },
+                      [](IElement& self, const CBox& box, const Vector2D& maxSize) { self.reposition(box, maxSize); }),
+        "forceReposition", &IElement::forceReposition, "setPositionMode", &IElement::setPositionMode, "setPositionFlag", &IElement::setPositionFlag, "setAbsolutePosition",
+        &IElement::setAbsolutePosition, "addChild",
+        [](IElement& self, const sol::object& child) {
+            self.addChild(luaToElement(child));
         },
-        "removeChild", &IElement::removeChild,
-        "clearChildren", &IElement::clearChildren,
-
-        // Styling
-        "setMargin", &IElement::setMargin,
-        "setGrouped", &IElement::setGrouped,
-        "setTooltip", [](IElement* self, const std::string& tooltip) {
-            self->setTooltip(std::string(tooltip));
+        "removeChild",
+        [](IElement& self, const sol::object& child) {
+            self.removeChild(luaToElement(child));
         },
-
-        // Growth
-        "setGrow", sol::overload(
-            static_cast<void (IElement::*)(bool)>(&IElement::setGrow),
-            static_cast<void (IElement::*)(bool, bool)>(&IElement::setGrow)
-        ),
-
-        // Mouse input
-        "setReceivesMouse", &IElement::setReceivesMouse,
-
-        "setMouseEnter", [](IElement* self, sol::function fn) {
-            self->setMouseEnter([fn](const Vector2D& pos) {
-                sol::protected_function_result result = fn(pos);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] mouseEnter callback error: %s\n", err.what());
-                }
+        "clearChildren", &IElement::clearChildren, "setMargin", &IElement::setMargin, "setGrouped", &IElement::setGrouped, "setTooltip",
+        [](IElement& self, const std::string& tooltip) {
+            self.setTooltip(std::string{tooltip});
+        },
+        "setGrow",
+        sol::overload(static_cast<void (IElement::*)(bool)>(&IElement::setGrow), static_cast<void (IElement::*)(bool, bool)>(&IElement::setGrow)), "setReceivesMouse",
+        &IElement::setReceivesMouse, "setMouseEnter",
+        [](IElement& self, sol::protected_function callback) {
+            self.setMouseEnter([callback = std::move(callback)](const Vector2D& position) {
+                invokeLuaCallback(callback, "Element.setMouseEnter", position);
             });
         },
-
-        "setMouseLeave", [](IElement* self, sol::function fn) {
-            self->setMouseLeave([fn]() {
-                sol::protected_function_result result = fn();
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] mouseLeave callback error: %s\n", err.what());
-                }
+        "setMouseLeave",
+        [](IElement& self, sol::protected_function callback) {
+            self.setMouseLeave([callback = std::move(callback)]() {
+                invokeLuaCallback(callback, "Element.setMouseLeave");
             });
         },
-
-        "setMouseMove", [](IElement* self, sol::function fn) {
-            self->setMouseMove([fn](const Vector2D& pos) {
-                sol::protected_function_result result = fn(pos);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] mouseMove callback error: %s\n", err.what());
-                }
+        "setMouseMove",
+        [](IElement& self, sol::protected_function callback) {
+            self.setMouseMove([callback = std::move(callback)](const Vector2D& position) {
+                invokeLuaCallback(callback, "Element.setMouseMove", position);
             });
         },
-
-        "setMouseButton", [](IElement* self, sol::function fn) {
-            self->setMouseButton([fn](Input::eMouseButton button, bool pressed) {
-                sol::protected_function_result result = fn(button, pressed);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] mouseButton callback error: %s\n", err.what());
-                }
+        "setMouseButton",
+        [](IElement& self, sol::protected_function callback) {
+            self.setMouseButton([callback = std::move(callback)](Input::eMouseButton button, bool pressed) {
+                invokeLuaCallback(callback, "Element.setMouseButton", button, pressed);
             });
         },
-
-        "setMouseAxis", [](IElement* self, sol::function fn) {
-            self->setMouseAxis([fn](Input::eAxisAxis axis, float delta) {
-                sol::protected_function_result result = fn(axis, delta);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] mouseAxis callback error: %s\n", err.what());
-                }
+        "setMouseAxis",
+        [](IElement& self, sol::protected_function callback) {
+            self.setMouseAxis([callback = std::move(callback)](Input::eAxisAxis axis, float delta) {
+                invokeLuaCallback(callback, "Element.setMouseAxis", axis, delta);
             });
         },
-
-        "setRepositioned", [](IElement* self, sol::function fn) {
-            self->setRepositioned([fn]() {
-                sol::protected_function_result result = fn();
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] repositioned callback error: %s\n", err.what());
-                }
+        "setRepositioned",
+        [](IElement& self, sol::protected_function callback) {
+            self.setRepositioned([callback = std::move(callback)]() {
+                invokeLuaCallback(callback, "Element.setRepositioned");
             });
-        }
-    );
+        });
 }
 
 } // namespace Hyprtoolkit::Lua

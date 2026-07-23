@@ -1,20 +1,36 @@
 #pragma once
 
-#include <sol/sol.hpp>
+#include <cstdio>
 #include <functional>
+#include <sol/sol.hpp>
 #include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 namespace Hyprtoolkit::Lua {
 
-// Convert a Lua function to a std::function with error handling
+inline void reportLuaCallbackError(std::string_view context, const char* message) {
+    fprintf(stderr, "[hyprtoolkit-lua] %.*s: %s\n", static_cast<int>(context.size()), context.data(), message);
+}
+
+template <typename... Args>
+void invokeLuaCallback(const sol::protected_function& fn, std::string_view context, Args&&... args) {
+    sol::protected_function_result result = fn(std::forward<Args>(args)...);
+    if (result.valid())
+        return;
+
+    const sol::error error = result;
+    reportLuaCallbackError(context, error.what());
+}
+
 template <typename Ret, typename... Args>
-std::function<Ret(Args...)> luaToCallback(sol::protected_function fn) {
-    return [fn](Args... args) -> Ret {
+std::function<Ret(Args...)> luaToCallback(sol::protected_function fn, std::string context) {
+    return [fn = std::move(fn), context = std::move(context)](Args... args) -> Ret {
         sol::protected_function_result result = fn(args...);
         if (!result.valid()) {
-            sol::error err = result;
-            // TODO: integrate with hyprtoolkit logging
-            fprintf(stderr, "[Lua] Callback error: %s\n", err.what());
+            const sol::error error = result;
+            reportLuaCallbackError(context, error.what());
             if constexpr (!std::is_void_v<Ret>) {
                 return Ret{};
             }
@@ -26,28 +42,10 @@ std::function<Ret(Args...)> luaToCallback(sol::protected_function fn) {
     };
 }
 
-// Specialization for void return type
 template <typename... Args>
-std::function<void(Args...)> luaToVoidCallback(sol::protected_function fn) {
-    return [fn](Args... args) {
-        sol::protected_function_result result = fn(args...);
-        if (!result.valid()) {
-            sol::error err = result;
-            fprintf(stderr, "[Lua] Callback error: %s\n", err.what());
-        }
-    };
-}
-
-// Safe callback wrapper that captures the Lua function
-template <typename... Args>
-auto makeSafeCallback(sol::function fn) {
-    return [fn](Args... args) {
-        sol::protected_function pfn = fn;
-        sol::protected_function_result result = pfn(args...);
-        if (!result.valid()) {
-            sol::error err = result;
-            fprintf(stderr, "[Lua] Callback error: %s\n", err.what());
-        }
+std::function<void(Args...)> luaToVoidCallback(sol::protected_function fn, std::string context) {
+    return [fn = std::move(fn), context = std::move(context)](Args... args) {
+        invokeLuaCallback(fn, context, args...);
     };
 }
 

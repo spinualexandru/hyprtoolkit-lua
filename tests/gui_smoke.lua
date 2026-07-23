@@ -1,0 +1,183 @@
+local htk = require("hyprtoolkit")
+
+local backend = assert(htk.Backend.create(), "failed to create Hyprtoolkit backend")
+local palette = backend:getPalette()
+local connections = {}
+local idleRan = false
+
+backend:setLogCallback(function(level, message)
+    if level >= htk.LogLevel.ERROR then
+        io.stderr:write("[hyprtoolkit] " .. message .. "\n")
+    end
+end)
+
+connections[#connections + 1] = backend:onOutputAdded(function(_) end)
+backend:addIdle(function()
+    idleRan = true
+end)
+
+local window = htk.WindowBuilder.begin()
+    :appTitle("Hyprtoolkit Lua GUI smoke")
+    :appClass("hyprtoolkit-lua-gui-smoke")
+    :preferredSize(htk.Vector2D.new(640, 520))
+    :resizable(true)
+    :autosize(false)
+    :inhibitShortcuts(false)
+    :commence()
+
+connections[#connections + 1] = window:onResized(function(_) end)
+connections[#connections + 1] = window:onCloseRequest(function()
+    window:close()
+    backend:destroy()
+end)
+
+local background = htk.RectangleBuilder.begin()
+    :color(function() return palette.background end)
+    :borderGradient(htk.Gradient.new({
+        htk.Color.new(0.2, 0.6, 1.0),
+        htk.Color.new(0.8, 0.2, 0.9),
+    }, 45))
+    :borderThickness(2)
+    :size(htk.DynamicSize.percent(1, 1))
+    :commence()
+local originalRoot = window.rootElement
+window.rootElement = background
+window.rootElement = originalRoot
+originalRoot:addChild(background)
+
+local scroll = htk.ScrollAreaBuilder.begin()
+    :scrollY(true)
+    :showScrollbar(true)
+    :size(htk.DynamicSize.percent(1, 1))
+    :commence()
+scroll:setMargin(12)
+background:addChild(scroll)
+
+local column = htk.ColumnLayoutBuilder.begin()
+    :gap(10)
+    :size(htk.DynamicSize.mixed(htk.SizeType.PERCENT, htk.SizeType.AUTO, 1, 1))
+    :commence()
+scroll:addChild(column)
+
+local title = htk.TextBuilder.begin()
+    :text("Current-main Lua bindings")
+    :interactable(true)
+    :fontSize(htk.FontSize.h2())
+    :commence()
+title:setText("Current-main Lua bindings")
+column:addChild(title)
+
+local button = htk.ButtonBuilder.begin()
+    :label("Accent action")
+    :accent(true)
+    :ellipsize(true)
+    :enabled(true)
+    :onMainClick(function(element)
+        element:setLabel("Clicked")
+        element:setEnabled(false)
+    end)
+    :commence()
+column:addChild(button)
+
+local textbox = htk.TextboxBuilder.begin()
+    :placeholder("Secret")
+    :password(true)
+    :eyeIcon(true)
+    :size(htk.DynamicSize.mixed(htk.SizeType.PERCENT, htk.SizeType.ABSOLUTE, 1, 34))
+    :commence()
+textbox:setText("hyprtoolkit")
+textbox:setPassword(true)
+assert(textbox:cursorPos() >= 0)
+local selectionStart, selectionEnd = textbox:selection()
+assert(type(selectionStart) == "number" and type(selectionEnd) == "number")
+column:addChild(textbox)
+
+local radioA = htk.CheckboxBuilder.begin():style(htk.CheckboxStyle.RADIO):toggled(true):commence()
+local radioB = htk.CheckboxBuilder.begin():style(htk.CheckboxStyle.RADIO):commence()
+radioB:setState(false)
+local radioGroup = htk.RadioGroup.create()
+radioGroup:add(radioA)
+radioGroup:add(radioB)
+radioGroup:onSelected(function(_) end)
+radioGroup:setSelected(radioA)
+assert(radioGroup:selected() ~= nil)
+
+local radioRow = htk.RowLayoutBuilder.begin():gap(12):commence()
+radioRow:addChild(radioA)
+radioRow:addChild(radioB)
+column:addChild(radioRow)
+
+local progress = htk.ProgressBarBuilder.begin()
+    :value(0.42)
+    :size(htk.DynamicSize.mixed(htk.SizeType.PERCENT, htk.SizeType.ABSOLUTE, 1, 14))
+    :commence()
+progress:setValue(0.65)
+column:addChild(progress)
+
+local indeterminate = htk.ProgressBarBuilder.begin()
+    :indeterminate(true)
+    :size(htk.DynamicSize.mixed(htk.SizeType.PERCENT, htk.SizeType.ABSOLUTE, 1, 14))
+    :commence()
+column:addChild(indeterminate)
+
+local selector = htk.ComboboxBuilder.begin()
+    :items({ "first", "second", "third" })
+    :currentItem(2)
+    :onChanged(function(_, index)
+        assert(index >= 1)
+    end)
+    :commence()
+assert(selector:current() == 2)
+selector:setCurrent(3)
+assert(selector:current() == 3)
+column:addChild(selector)
+
+local spinbox = htk.SpinboxBuilder.begin()
+    :label("Smoke choice")
+    :items({ "one", "two", "three" })
+    :currentItem(2)
+    :onChanged(function(_, index)
+        assert(index >= 1)
+    end)
+    :commence()
+assert(spinbox:current() == 2)
+spinbox:setCurrent(1)
+column:addChild(spinbox)
+
+local projectRoot = assert(arg[0]:match("^(.*)/tests/[^/]+$"))
+local imagePath = projectRoot .. "/examples/assets/logo.png"
+local imageFile = assert(io.open(imagePath, "rb"))
+local imageBytes = imageFile:read("*a")
+imageFile:close()
+local image = htk.ImageBuilder.begin()
+    :data(imageBytes)
+    :sync(true)
+    :fitMode(htk.ImageFitMode.CONTAIN)
+    :size(htk.DynamicSize.absolute(72, 72))
+    :commence()
+column:addChild(image)
+
+window:open()
+textbox:focus()
+title:reposition(htk.Box.new(0, 0, 320, 48))
+scroll:setScroll(htk.Vector2D.new(0, 8))
+assert(scroll:getCurrentScroll() ~= nil)
+local resizeTimer = backend:addTimer(300, function()
+    progress:setValue(0.8)
+    window:setSize(htk.Vector2D.new(700, 560))
+end)
+local closeTimer = backend:addTimer(1200, function()
+    assert(idleRan)
+    window:close()
+    backend:destroy()
+end)
+assert(resizeTimer ~= nil and closeTimer ~= nil)
+backend:enterLoop()
+
+for _, connection in ipairs(connections) do
+    assert(connection:connected())
+    connection:disconnect()
+    assert(not connection:connected())
+end
+
+print("hyprtoolkit graphical smoke OK")

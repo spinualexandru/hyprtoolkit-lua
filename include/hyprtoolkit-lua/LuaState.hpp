@@ -3,6 +3,7 @@
 #include <sol/sol.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <string>
+#include <utility>
 
 namespace Hyprtoolkit::Lua {
 

@@ -1,498 +1,311 @@
-#include <sol/sol.hpp>
-#include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/element/Button.hpp>
-#include <hyprtoolkit/element/Textbox.hpp>
 #include <hyprtoolkit/element/Checkbox.hpp>
-#include <hyprtoolkit/element/Slider.hpp>
-#include <hyprtoolkit/element/Combobox.hpp>
-#include <hyprtoolkit/element/Spinbox.hpp>
-#include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Combobox.hpp>
+#include <hyprtoolkit/element/Image.hpp>
+#include <hyprtoolkit/element/Line.hpp>
+#include <hyprtoolkit/element/Null.hpp>
+#include <hyprtoolkit/element/ProgressBar.hpp>
+#include <hyprtoolkit/element/RadioGroup.hpp>
+#include <hyprtoolkit/element/Rectangle.hpp>
 #include <hyprtoolkit/element/RowLayout.hpp>
 #include <hyprtoolkit/element/ScrollArea.hpp>
-#include <hyprtoolkit/element/Image.hpp>
-#include <hyprtoolkit/element/Null.hpp>
-#include <hyprtoolkit/element/Line.hpp>
+#include <hyprtoolkit/element/Slider.hpp>
+#include <hyprtoolkit/element/Spinbox.hpp>
+#include <hyprtoolkit/element/Text.hpp>
+#include <hyprtoolkit/element/Textbox.hpp>
 #include <hyprtoolkit/types/ImageTypes.hpp>
+#include <sol/sol.hpp>
 
-#include "../helpers/SmartPtrAdapter.hpp"
+#include "../helpers/ByteDataAdapter.hpp"
 #include "../helpers/CallbackAdapter.hpp"
 #include "../helpers/ColorFnAdapter.hpp"
+#include "../helpers/GradientFnAdapter.hpp"
+#include "../helpers/SmartPtrAdapter.hpp"
 
-using namespace Hyprutils::Memory;
 using namespace Hyprutils::Math;
+using namespace Hyprutils::Memory;
 
 namespace Hyprtoolkit::Lua {
 
-// Text Element
-void registerTextElement(sol::state& lua) {
-    lua.new_usertype<CTextBuilder>("CTextBuilder",
-        sol::no_constructor,
-        "begin", &CTextBuilder::begin,
-        "text", [](CSharedPointer<CTextBuilder> self, const std::string& t) {
-            return self->text(std::string(t));
-        },
-        "color", [](CSharedPointer<CTextBuilder> self, sol::object colorObj) {
-            return self->color(luaToColorFn(colorObj));
-        },
-        "a", &CTextBuilder::a,
-        "fontSize", [](CSharedPointer<CTextBuilder> self, CFontSize fontSize) {
-            return self->fontSize(std::move(fontSize));
-        },
-        "align", &CTextBuilder::align,
-        "fontFamily", [](CSharedPointer<CTextBuilder> self, const std::string& f) {
-            return self->fontFamily(std::string(f));
-        },
-        "clampSize", [](CSharedPointer<CTextBuilder> self, double x, double y) {
-            return self->clampSize(Vector2D{x, y});
-        },
-        "callback", [](CSharedPointer<CTextBuilder> self, sol::function fn) {
-            return self->callback([fn]() {
-                sol::protected_function_result result = fn();
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Text callback error: %s\n", err.what());
-                }
-            });
-        },
-        "noEllipsize", &CTextBuilder::noEllipsize,
-        "size", [](CSharedPointer<CTextBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "async", &CTextBuilder::async,
-        "commence", &CTextBuilder::commence
-    );
-
-    lua.new_usertype<CTextElement>("CTextElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CTextElement::rebuild,
-        "size", &CTextElement::size
-    );
+static std::vector<std::string> luaToStrings(const sol::table& table, std::string_view context) {
+    std::vector<std::string> values;
+    values.reserve(table.size());
+    for (size_t index = 1; index <= table.size(); ++index) {
+        const sol::object value = table[index];
+        if (!value.is<std::string>())
+            throw sol::error(std::string{context} + " expects a dense array of strings");
+        values.push_back(value.as<std::string>());
+    }
+    if (values.empty())
+        throw sol::error(std::string{context} + " requires at least one item");
+    return values;
 }
 
-// Button Element
-void registerButtonElement(sol::state& lua) {
-    lua.new_usertype<CButtonBuilder>("CButtonBuilder",
-        sol::no_constructor,
-        "begin", &CButtonBuilder::begin,
-        "label", [](CSharedPointer<CButtonBuilder> self, const std::string& l) {
-            return self->label(std::string(l));
-        },
-        "noBorder", &CButtonBuilder::noBorder,
-        "noBg", &CButtonBuilder::noBg,
-        "alignText", &CButtonBuilder::alignText,
-        "fontFamily", [](CSharedPointer<CButtonBuilder> self, const std::string& f) {
-            return self->fontFamily(std::string(f));
-        },
-        "fontSize", [](CSharedPointer<CButtonBuilder> self, CFontSize fontSize) {
-            return self->fontSize(std::move(fontSize));
-        },
-        "onMainClick", [](CSharedPointer<CButtonBuilder> self, sol::function fn) {
-            return self->onMainClick([fn](CSharedPointer<CButtonElement> el) {
-                sol::protected_function_result result = fn(el);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Button onMainClick error: %s\n", err.what());
-                }
-            });
-        },
-        "onRightClick", [](CSharedPointer<CButtonBuilder> self, sol::function fn) {
-            return self->onRightClick([fn](CSharedPointer<CButtonElement> el) {
-                sol::protected_function_result result = fn(el);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Button onRightClick error: %s\n", err.what());
-                }
-            });
-        },
-        "size", [](CSharedPointer<CButtonBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CButtonBuilder::commence
-    );
-
-    lua.new_usertype<CButtonElement>("CButtonElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CButtonElement::rebuild,
-        "size", &CButtonElement::size
-    );
+static size_t luaIndexToCpp(lua_Integer index, std::string_view context) {
+    if (index <= 0)
+        throw sol::error(std::string{context} + " uses 1-based indices");
+    return static_cast<size_t>(index - 1);
 }
 
-// Textbox Element
-void registerTextboxElement(sol::state& lua) {
-    lua.new_usertype<CTextboxBuilder>("CTextboxBuilder",
-        sol::no_constructor,
-        "begin", &CTextboxBuilder::begin,
-        "placeholder", [](CSharedPointer<CTextboxBuilder> self, const std::string& p) {
-            return self->placeholder(std::string(p));
+void registerTextElement(sol::table& module) {
+    module.new_usertype<CTextBuilder>(
+        "TextBuilder", sol::no_constructor, "begin", &CTextBuilder::begin, "text",
+        [](CSharedPointer<CTextBuilder> self, const std::string& text) { return self->text(std::string{text}); }, "color",
+        [](CSharedPointer<CTextBuilder> self, const sol::object& color) { return self->color(luaToColorFn(color, "TextBuilder.color")); }, "a", &CTextBuilder::a, "fontSize",
+        [](CSharedPointer<CTextBuilder> self, CFontSize size) { return self->fontSize(std::move(size)); }, "align", &CTextBuilder::align, "fontFamily",
+        [](CSharedPointer<CTextBuilder> self, const std::string& family) { return self->fontFamily(std::string{family}); }, "clampSize",
+        [](CSharedPointer<CTextBuilder> self, const Vector2D& size) { return self->clampSize(Vector2D{size}); }, "callback",
+        [](CSharedPointer<CTextBuilder> self, sol::protected_function callback) {
+            return self->callback([callback = std::move(callback)]() { invokeLuaCallback(callback, "TextBuilder.callback"); });
         },
-        "defaultText", [](CSharedPointer<CTextboxBuilder> self, const std::string& t) {
-            return self->defaultText(std::string(t));
-        },
-        "onTextEdited", [](CSharedPointer<CTextboxBuilder> self, sol::function fn) {
-            return self->onTextEdited([fn](CSharedPointer<CTextboxElement> el, const std::string& text) {
-                sol::protected_function_result result = fn(el, text);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Textbox onTextEdited error: %s\n", err.what());
-                }
-            });
-        },
-        "multiline", &CTextboxBuilder::multiline,
-        "size", [](CSharedPointer<CTextboxBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CTextboxBuilder::commence
-    );
+        "noEllipsize", &CTextBuilder::noEllipsize, "size",
+        [](CSharedPointer<CTextBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "async", &CTextBuilder::async, "interactable",
+        &CTextBuilder::interactable, "commence", &CTextBuilder::commence);
 
-    lua.new_usertype<CTextboxElement>("CTextboxElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CTextboxElement::rebuild,
-        "size", &CTextboxElement::size,
-        "focus", &CTextboxElement::focus,
-        "currentText", [](CTextboxElement* self) {
-            return std::string(self->currentText());
-        }
-    );
+    module.new_usertype<CTextElement>("TextElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CTextElement::rebuild, "size",
+                                      &CTextElement::size, "setText", &CTextElement::setText);
 }
 
-// Checkbox Element
-void registerCheckboxElement(sol::state& lua) {
-    lua.new_usertype<CCheckboxBuilder>("CCheckboxBuilder",
-        sol::no_constructor,
-        "begin", &CCheckboxBuilder::begin,
-        "toggled", &CCheckboxBuilder::toggled,
-        "onToggled", [](CSharedPointer<CCheckboxBuilder> self, sol::function fn) {
-            return self->onToggled([fn](CSharedPointer<CCheckboxElement> el, bool state) {
-                sol::protected_function_result result = fn(el, state);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Checkbox onToggled error: %s\n", err.what());
-                }
+void registerButtonElement(sol::table& module) {
+    module.new_usertype<CButtonBuilder>(
+        "ButtonBuilder", sol::no_constructor, "begin", &CButtonBuilder::begin, "label",
+        [](CSharedPointer<CButtonBuilder> self, const std::string& label) { return self->label(std::string{label}); }, "noBorder", &CButtonBuilder::noBorder, "noBg",
+        &CButtonBuilder::noBg, "accent", &CButtonBuilder::accent, "ellipsize", &CButtonBuilder::ellipsize, "enabled", &CButtonBuilder::enabled, "alignText",
+        &CButtonBuilder::alignText, "fontFamily",
+        [](CSharedPointer<CButtonBuilder> self, const std::string& family) { return self->fontFamily(std::string{family}); }, "fontSize",
+        [](CSharedPointer<CButtonBuilder> self, CFontSize size) { return self->fontSize(std::move(size)); }, "onMainClick",
+        [](CSharedPointer<CButtonBuilder> self, sol::protected_function callback) {
+            return self->onMainClick([callback = std::move(callback)](CSharedPointer<CButtonElement> element) {
+                invokeLuaCallback(callback, "ButtonBuilder.onMainClick", element);
             });
         },
-        "size", [](CSharedPointer<CCheckboxBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CCheckboxBuilder::commence
-    );
-
-    lua.new_usertype<CCheckboxElement>("CCheckboxElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CCheckboxElement::rebuild,
-        "size", &CCheckboxElement::size
-    );
-}
-
-// Slider Element
-void registerSliderElement(sol::state& lua) {
-    lua.new_usertype<CSliderBuilder>("CSliderBuilder",
-        sol::no_constructor,
-        "begin", &CSliderBuilder::begin,
-        "min", &CSliderBuilder::min,
-        "max", &CSliderBuilder::max,
-        "val", &CSliderBuilder::val,
-        "snapInt", &CSliderBuilder::snapInt,
-        "onChanged", [](CSharedPointer<CSliderBuilder> self, sol::function fn) {
-            return self->onChanged([fn](CSharedPointer<CSliderElement> el, float value) {
-                sol::protected_function_result result = fn(el, value);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Slider onChanged error: %s\n", err.what());
-                }
+        "onRightClick",
+        [](CSharedPointer<CButtonBuilder> self, sol::protected_function callback) {
+            return self->onRightClick([callback = std::move(callback)](CSharedPointer<CButtonElement> element) {
+                invokeLuaCallback(callback, "ButtonBuilder.onRightClick", element);
             });
         },
-        "size", [](CSharedPointer<CSliderBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CSliderBuilder::commence
-    );
+        "size", [](CSharedPointer<CButtonBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CButtonBuilder::commence);
 
-    lua.new_usertype<CSliderElement>("CSliderElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CSliderElement::rebuild,
-        "size", &CSliderElement::size,
-        "sliding", &CSliderElement::sliding
-    );
+    module.new_usertype<CButtonElement>("ButtonElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CButtonElement::rebuild, "size",
+                                        &CButtonElement::size, "setLabel", &CButtonElement::setLabel, "setEnabled", &CButtonElement::setEnabled);
 }
 
-// Combobox Element
-void registerComboboxElement(sol::state& lua) {
-    lua.new_usertype<CComboboxBuilder>("CComboboxBuilder",
-        sol::no_constructor,
-        "begin", &CComboboxBuilder::begin,
-        "items", [](CSharedPointer<CComboboxBuilder> self, sol::table itemsTable) {
-            std::vector<std::string> items;
-            for (size_t i = 1; i <= itemsTable.size(); ++i) {
-                items.push_back(itemsTable[i].get<std::string>());
+void registerTextboxElement(sol::table& module) {
+    module.new_usertype<CTextboxBuilder>(
+        "TextboxBuilder", sol::no_constructor, "begin", &CTextboxBuilder::begin, "placeholder",
+        [](CSharedPointer<CTextboxBuilder> self, const std::string& placeholder) { return self->placeholder(std::string{placeholder}); }, "defaultText",
+        [](CSharedPointer<CTextboxBuilder> self, const std::string& text) { return self->defaultText(std::string{text}); }, "onTextEdited",
+        [](CSharedPointer<CTextboxBuilder> self, sol::protected_function callback) {
+            return self->onTextEdited([callback = std::move(callback)](CSharedPointer<CTextboxElement> element, const std::string& text) {
+                invokeLuaCallback(callback, "TextboxBuilder.onTextEdited", element, text);
+            });
+        },
+        "multiline", &CTextboxBuilder::multiline, "password", &CTextboxBuilder::password, "eyeIcon", &CTextboxBuilder::eyeIcon, "size",
+        [](CSharedPointer<CTextboxBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CTextboxBuilder::commence);
+
+    module.new_usertype<CTextboxElement>(
+        "TextboxElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CTextboxElement::rebuild, "size", &CTextboxElement::size, "focus",
+        [](CTextboxElement& self, sol::optional<bool> focus) { self.focus(focus.value_or(true)); }, "currentText",
+        [](CTextboxElement& self) { return std::string{self.currentText()}; }, "cursorPos", &CTextboxElement::cursorPos, "selection",
+        [](const CTextboxElement& self) { return self.selection(); }, "setText", &CTextboxElement::setText, "setPassword", &CTextboxElement::setPassword);
+}
+
+void registerCheckboxElement(sol::table& module) {
+    module.new_enum<eCheckboxStyle>(
+        "CheckboxStyle", {{"CHECKMARK", HT_CHECKBOX_STYLE_CHECKMARK}, {"RADIO", HT_CHECKBOX_STYLE_RADIO}});
+
+    module.new_usertype<CCheckboxBuilder>(
+        "CheckboxBuilder", sol::no_constructor, "begin", &CCheckboxBuilder::begin, "toggled", &CCheckboxBuilder::toggled, "style", &CCheckboxBuilder::style, "onToggled",
+        [](CSharedPointer<CCheckboxBuilder> self, sol::protected_function callback) {
+            return self->onToggled([callback = std::move(callback)](CSharedPointer<CCheckboxElement> element, bool state) {
+                invokeLuaCallback(callback, "CheckboxBuilder.onToggled", element, state);
+            });
+        },
+        "size", [](CSharedPointer<CCheckboxBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CCheckboxBuilder::commence);
+
+    module.new_usertype<CCheckboxElement>("CheckboxElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CCheckboxElement::rebuild, "size",
+                                          &CCheckboxElement::size, "state", &CCheckboxElement::state, "setState", &CCheckboxElement::setState);
+}
+
+void registerRadioGroup(sol::table& module) {
+    module.new_usertype<CRadioGroup>(
+        "RadioGroup", sol::no_constructor, "create", &CRadioGroup::create, "add", &CRadioGroup::add, "selected", &CRadioGroup::selected, "setSelected", &CRadioGroup::setSelected,
+        "onSelected",
+        [](CRadioGroup& self, sol::protected_function callback) {
+            self.onSelected([callback = std::move(callback)](CSharedPointer<CCheckboxElement> selected) {
+                invokeLuaCallback(callback, "RadioGroup.onSelected", selected);
+            });
+        });
+}
+
+void registerSliderElement(sol::table& module) {
+    module.new_usertype<CSliderBuilder>(
+        "SliderBuilder", sol::no_constructor, "begin", &CSliderBuilder::begin, "min", &CSliderBuilder::min, "max", &CSliderBuilder::max, "val", &CSliderBuilder::val, "snapInt",
+        &CSliderBuilder::snapInt, "onChanged",
+        [](CSharedPointer<CSliderBuilder> self, sol::protected_function callback) {
+            return self->onChanged([callback = std::move(callback)](CSharedPointer<CSliderElement> element, float value) {
+                invokeLuaCallback(callback, "SliderBuilder.onChanged", element, value);
+            });
+        },
+        "size", [](CSharedPointer<CSliderBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CSliderBuilder::commence);
+
+    module.new_usertype<CSliderElement>("SliderElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CSliderElement::rebuild, "size",
+                                        &CSliderElement::size, "sliding", &CSliderElement::sliding);
+}
+
+void registerComboboxElement(sol::table& module) {
+    module.new_usertype<CComboboxBuilder>(
+        "ComboboxBuilder", sol::no_constructor, "begin", &CComboboxBuilder::begin, "items",
+        [](CSharedPointer<CComboboxBuilder> self, const sol::table& items) { return self->items(luaToStrings(items, "ComboboxBuilder.items")); }, "currentItem",
+        [](CSharedPointer<CComboboxBuilder> self, lua_Integer index) { return self->currentItem(luaIndexToCpp(index, "ComboboxBuilder.currentItem")); }, "onChanged",
+        [](CSharedPointer<CComboboxBuilder> self, sol::protected_function callback) {
+            return self->onChanged([callback = std::move(callback)](CSharedPointer<CComboboxElement> element, size_t index) {
+                invokeLuaCallback(callback, "ComboboxBuilder.onChanged", element, index + 1);
+            });
+        },
+        "size", [](CSharedPointer<CComboboxBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CComboboxBuilder::commence);
+
+    module.new_usertype<CComboboxElement>(
+        "ComboboxElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CComboboxElement::rebuild, "size", &CComboboxElement::size, "current",
+        [](CComboboxElement& self) { return self.current() + 1; }, "setCurrent",
+        [](CComboboxElement& self, lua_Integer index) { self.setCurrent(luaIndexToCpp(index, "ComboboxElement.setCurrent")); });
+}
+
+void registerSpinboxElement(sol::table& module) {
+    module.new_usertype<CSpinboxBuilder>(
+        "SpinboxBuilder", sol::no_constructor, "begin", &CSpinboxBuilder::begin, "label",
+        [](CSharedPointer<CSpinboxBuilder> self, const std::string& label) { return self->label(std::string{label}); }, "items",
+        [](CSharedPointer<CSpinboxBuilder> self, const sol::table& items) { return self->items(luaToStrings(items, "SpinboxBuilder.items")); }, "currentItem",
+        [](CSharedPointer<CSpinboxBuilder> self, lua_Integer index) { return self->currentItem(luaIndexToCpp(index, "SpinboxBuilder.currentItem")); }, "onChanged",
+        [](CSharedPointer<CSpinboxBuilder> self, sol::protected_function callback) {
+            return self->onChanged([callback = std::move(callback)](CSharedPointer<CSpinboxElement> element, size_t index) {
+                invokeLuaCallback(callback, "SpinboxBuilder.onChanged", element, index + 1);
+            });
+        },
+        "fill", &CSpinboxBuilder::fill, "size", [](CSharedPointer<CSpinboxBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence",
+        &CSpinboxBuilder::commence);
+
+    module.new_usertype<CSpinboxElement>(
+        "SpinboxElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CSpinboxElement::rebuild, "size", &CSpinboxElement::size, "current",
+        [](CSpinboxElement& self) { return self.current() + 1; }, "setCurrent",
+        [](CSpinboxElement& self, lua_Integer index) { self.setCurrent(luaIndexToCpp(index, "SpinboxElement.setCurrent")); });
+}
+
+void registerRectangleElement(sol::table& module) {
+    module.new_usertype<CRectangleBuilder>(
+        "RectangleBuilder", sol::no_constructor, "begin", &CRectangleBuilder::begin, "color",
+        [](CSharedPointer<CRectangleBuilder> self, const sol::object& color) { return self->color(luaToColorFn(color, "RectangleBuilder.color")); }, "borderColor",
+        [](CSharedPointer<CRectangleBuilder> self, const sol::object& color) { return self->borderColor(luaToColorFn(color, "RectangleBuilder.borderColor")); }, "borderGradient",
+        [](CSharedPointer<CRectangleBuilder> self, const sol::object& gradient) { return self->borderGradient(luaToGradientFn(gradient)); }, "rounding",
+        &CRectangleBuilder::rounding, "borderThickness", &CRectangleBuilder::borderThickness, "size",
+        [](CSharedPointer<CRectangleBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CRectangleBuilder::commence);
+
+    module.new_usertype<CRectangleElement>("RectangleElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CRectangleElement::rebuild, "size",
+                                           &CRectangleElement::size);
+}
+
+void registerColumnLayoutElement(sol::table& module) {
+    module.new_usertype<CColumnLayoutBuilder>(
+        "ColumnLayoutBuilder", sol::no_constructor, "begin", &CColumnLayoutBuilder::begin, "gap", &CColumnLayoutBuilder::gap, "size",
+        [](CSharedPointer<CColumnLayoutBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CColumnLayoutBuilder::commence);
+    module.new_usertype<CColumnLayoutElement>("ColumnLayoutElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CColumnLayoutElement::rebuild,
+                                              "size", &CColumnLayoutElement::size);
+}
+
+void registerRowLayoutElement(sol::table& module) {
+    module.new_usertype<CRowLayoutBuilder>(
+        "RowLayoutBuilder", sol::no_constructor, "begin", &CRowLayoutBuilder::begin, "gap", &CRowLayoutBuilder::gap, "size",
+        [](CSharedPointer<CRowLayoutBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CRowLayoutBuilder::commence);
+    module.new_usertype<CRowLayoutElement>("RowLayoutElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "size", &CRowLayoutElement::size);
+}
+
+void registerScrollAreaElement(sol::table& module) {
+    module.new_usertype<CScrollAreaBuilder>(
+        "ScrollAreaBuilder", sol::no_constructor, "begin", &CScrollAreaBuilder::begin, "scrollX", &CScrollAreaBuilder::scrollX, "scrollY", &CScrollAreaBuilder::scrollY,
+        "blockUserScroll", &CScrollAreaBuilder::blockUserScroll, "showScrollbar", &CScrollAreaBuilder::showScrollbar, "size",
+        [](CSharedPointer<CScrollAreaBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CScrollAreaBuilder::commence);
+    module.new_usertype<CScrollAreaElement>(
+        "ScrollAreaElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "size", &CScrollAreaElement::size, "getCurrentScroll",
+        &CScrollAreaElement::getCurrentScroll, "setScroll", &CScrollAreaElement::setScroll);
+}
+
+void registerImageElement(sol::table& module) {
+    module.new_enum<eImageFitMode>(
+        "ImageFitMode", {{"STRETCH", IMAGE_FIT_MODE_STRETCH}, {"COVER", IMAGE_FIT_MODE_COVER}, {"CONTAIN", IMAGE_FIT_MODE_CONTAIN}, {"TILE", IMAGE_FIT_MODE_TILE}});
+
+    module.new_usertype<CImageBuilder>(
+        "ImageBuilder", sol::no_constructor, "begin", &CImageBuilder::begin, "path",
+        [](CSharedPointer<CImageBuilder> self, const std::string& path) { return self->path(std::string{path}); }, "icon", &CImageBuilder::icon, "data",
+        [](CSharedPointer<CImageBuilder> self, const sol::object& data) { return self->data(luaToBytes(data)); }, "a", &CImageBuilder::a, "fitMode", &CImageBuilder::fitMode,
+        "sync", &CImageBuilder::sync, "rounding", &CImageBuilder::rounding, "size",
+        [](CSharedPointer<CImageBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CImageBuilder::commence);
+    module.new_usertype<CImageElement>("ImageElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CImageElement::rebuild, "size",
+                                       &CImageElement::size);
+}
+
+void registerNullElement(sol::table& module) {
+    module.new_usertype<CNullBuilder>(
+        "NullBuilder", sol::no_constructor, "begin", &CNullBuilder::begin, "size",
+        [](CSharedPointer<CNullBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CNullBuilder::commence);
+    module.new_usertype<CNullElement>("NullElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CNullElement::rebuild, "size",
+                                      &CNullElement::size);
+}
+
+void registerLineElement(sol::table& module) {
+    module.new_usertype<CLineBuilder>(
+        "LineBuilder", sol::no_constructor, "begin", &CLineBuilder::begin, "color",
+        [](CSharedPointer<CLineBuilder> self, const sol::object& color) { return self->color(luaToColorFn(color, "LineBuilder.color")); }, "thick", &CLineBuilder::thick, "points",
+        [](CSharedPointer<CLineBuilder> self, const sol::table& points) {
+            std::vector<Vector2D> converted;
+            converted.reserve(points.size());
+            for (size_t index = 1; index <= points.size(); ++index) {
+                const sol::object point = points[index];
+                if (point.is<Vector2D>()) {
+                    converted.push_back(point.as<Vector2D>());
+                    continue;
+                }
+                if (point.is<sol::table>()) {
+                    const sol::table coordinates = point.as<sol::table>();
+                    converted.emplace_back(coordinates[1].get<double>(), coordinates[2].get<double>());
+                    continue;
+                }
+                throw sol::error("LineBuilder.points expects Vector2D values or {x, y} arrays");
             }
-            return self->items(std::move(items));
+            return self->points(std::move(converted));
         },
-        "currentItem", &CComboboxBuilder::currentItem,
-        "onChanged", [](CSharedPointer<CComboboxBuilder> self, sol::function fn) {
-            return self->onChanged([fn](CSharedPointer<CComboboxElement> el, size_t idx) {
-                sol::protected_function_result result = fn(el, idx);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Combobox onChanged error: %s\n", err.what());
-                }
-            });
-        },
-        "size", [](CSharedPointer<CComboboxBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CComboboxBuilder::commence
-    );
-
-    lua.new_usertype<CComboboxElement>("CComboboxElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CComboboxElement::rebuild,
-        "size", &CComboboxElement::size,
-        "current", &CComboboxElement::current,
-        "setCurrent", &CComboboxElement::setCurrent
-    );
+        "size", [](CSharedPointer<CLineBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CLineBuilder::commence);
+    module.new_usertype<CLineElement>("LineElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CLineElement::rebuild, "size",
+                                      &CLineElement::size);
 }
 
-// Spinbox Element
-void registerSpinboxElement(sol::state& lua) {
-    lua.new_usertype<CSpinboxBuilder>("CSpinboxBuilder",
-        sol::no_constructor,
-        "begin", &CSpinboxBuilder::begin,
-        "label", [](CSharedPointer<CSpinboxBuilder> self, const std::string& l) {
-            return self->label(std::string(l));
-        },
-        "items", [](CSharedPointer<CSpinboxBuilder> self, sol::table itemsTable) {
-            std::vector<std::string> items;
-            for (size_t i = 1; i <= itemsTable.size(); ++i) {
-                items.push_back(itemsTable[i].get<std::string>());
-            }
-            return self->items(std::move(items));
-        },
-        "currentItem", &CSpinboxBuilder::currentItem,
-        "onChanged", [](CSharedPointer<CSpinboxBuilder> self, sol::function fn) {
-            return self->onChanged([fn](CSharedPointer<CSpinboxElement> el, size_t idx) {
-                sol::protected_function_result result = fn(el, idx);
-                if (!result.valid()) {
-                    sol::error err = result;
-                    fprintf(stderr, "[Lua] Spinbox onChanged error: %s\n", err.what());
-                }
-            });
-        },
-        "fill", &CSpinboxBuilder::fill,
-        "size", [](CSharedPointer<CSpinboxBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CSpinboxBuilder::commence
-    );
-
-    lua.new_usertype<CSpinboxElement>("CSpinboxElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CSpinboxElement::rebuild,
-        "size", &CSpinboxElement::size,
-        "current", &CSpinboxElement::current,
-        "setCurrent", &CSpinboxElement::setCurrent
-    );
+void registerProgressBarElement(sol::table& module) {
+    module.new_usertype<CProgressBarBuilder>(
+        "ProgressBarBuilder", sol::no_constructor, "begin", &CProgressBarBuilder::begin, "value", &CProgressBarBuilder::value, "indeterminate",
+        &CProgressBarBuilder::indeterminate, "size",
+        [](CSharedPointer<CProgressBarBuilder> self, CDynamicSize size) { return self->size(std::move(size)); }, "commence", &CProgressBarBuilder::commence);
+    module.new_usertype<CProgressBarElement>("ProgressBarElement", sol::no_constructor, sol::base_classes, sol::bases<IElement>(), "rebuild", &CProgressBarElement::rebuild,
+                                             "size", &CProgressBarElement::size, "value", &CProgressBarElement::value, "setValue", &CProgressBarElement::setValue);
 }
 
-// Rectangle Element
-void registerRectangleElement(sol::state& lua) {
-    lua.new_usertype<CRectangleBuilder>("CRectangleBuilder",
-        sol::no_constructor,
-        "begin", &CRectangleBuilder::begin,
-        "color", [](CSharedPointer<CRectangleBuilder> self, sol::object colorObj) {
-            return self->color(luaToColorFn(colorObj));
-        },
-        "borderColor", [](CSharedPointer<CRectangleBuilder> self, sol::object colorObj) {
-            return self->borderColor(luaToColorFn(colorObj));
-        },
-        "rounding", &CRectangleBuilder::rounding,
-        "borderThickness", &CRectangleBuilder::borderThickness,
-        "size", [](CSharedPointer<CRectangleBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CRectangleBuilder::commence
-    );
-
-    lua.new_usertype<CRectangleElement>("CRectangleElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CRectangleElement::rebuild,
-        "size", &CRectangleElement::size
-    );
-}
-
-// Column Layout Element
-void registerColumnLayoutElement(sol::state& lua) {
-    lua.new_usertype<CColumnLayoutBuilder>("CColumnLayoutBuilder",
-        sol::no_constructor,
-        "begin", &CColumnLayoutBuilder::begin,
-        "gap", &CColumnLayoutBuilder::gap,
-        "size", [](CSharedPointer<CColumnLayoutBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CColumnLayoutBuilder::commence
-    );
-
-    lua.new_usertype<CColumnLayoutElement>("CColumnLayoutElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CColumnLayoutElement::rebuild,
-        "size", &CColumnLayoutElement::size
-    );
-}
-
-// Row Layout Element
-void registerRowLayoutElement(sol::state& lua) {
-    lua.new_usertype<CRowLayoutBuilder>("CRowLayoutBuilder",
-        sol::no_constructor,
-        "begin", &CRowLayoutBuilder::begin,
-        "gap", &CRowLayoutBuilder::gap,
-        "size", [](CSharedPointer<CRowLayoutBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CRowLayoutBuilder::commence
-    );
-
-    lua.new_usertype<CRowLayoutElement>("CRowLayoutElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "size", &CRowLayoutElement::size
-    );
-}
-
-// Scroll Area Element
-void registerScrollAreaElement(sol::state& lua) {
-    lua.new_usertype<CScrollAreaBuilder>("CScrollAreaBuilder",
-        sol::no_constructor,
-        "begin", &CScrollAreaBuilder::begin,
-        "scrollX", &CScrollAreaBuilder::scrollX,
-        "scrollY", &CScrollAreaBuilder::scrollY,
-        "blockUserScroll", &CScrollAreaBuilder::blockUserScroll,
-        "size", [](CSharedPointer<CScrollAreaBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CScrollAreaBuilder::commence
-    );
-
-    lua.new_usertype<CScrollAreaElement>("CScrollAreaElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "size", &CScrollAreaElement::size,
-        "getCurrentScroll", &CScrollAreaElement::getCurrentScroll,
-        "setScroll", &CScrollAreaElement::setScroll
-    );
-}
-
-// Image Element
-void registerImageElement(sol::state& lua) {
-    // Image fit mode enum
-    lua.new_enum<eImageFitMode>("ImageFitMode",
-        {
-            {"STRETCH", IMAGE_FIT_MODE_STRETCH},
-            {"COVER", IMAGE_FIT_MODE_COVER},
-            {"CONTAIN", IMAGE_FIT_MODE_CONTAIN},
-            {"TILE", IMAGE_FIT_MODE_TILE}
-        }
-    );
-
-    lua.new_usertype<CImageBuilder>("CImageBuilder",
-        sol::no_constructor,
-        "begin", &CImageBuilder::begin,
-        "path", [](CSharedPointer<CImageBuilder> self, const std::string& p) {
-            return self->path(std::string(p));
-        },
-        "icon", &CImageBuilder::icon,
-        "a", &CImageBuilder::a,
-        "fitMode", &CImageBuilder::fitMode,
-        "sync", &CImageBuilder::sync,
-        "rounding", &CImageBuilder::rounding,
-        "size", [](CSharedPointer<CImageBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CImageBuilder::commence
-    );
-
-    lua.new_usertype<CImageElement>("CImageElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CImageElement::rebuild,
-        "size", &CImageElement::size
-    );
-}
-
-// Null Element (Spacer)
-void registerNullElement(sol::state& lua) {
-    lua.new_usertype<CNullBuilder>("CNullBuilder",
-        sol::no_constructor,
-        "begin", &CNullBuilder::begin,
-        "size", [](CSharedPointer<CNullBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CNullBuilder::commence
-    );
-
-    lua.new_usertype<CNullElement>("CNullElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CNullElement::rebuild,
-        "size", &CNullElement::size
-    );
-}
-
-// Line Element
-void registerLineElement(sol::state& lua) {
-    lua.new_usertype<CLineBuilder>("CLineBuilder",
-        sol::no_constructor,
-        "begin", &CLineBuilder::begin,
-        "color", [](CSharedPointer<CLineBuilder> self, sol::object colorObj) {
-            return self->color(luaToColorFn(colorObj));
-        },
-        "thick", &CLineBuilder::thick,
-        "points", [](CSharedPointer<CLineBuilder> self, sol::table pointsTable) {
-            std::vector<Vector2D> points;
-            for (size_t i = 1; i <= pointsTable.size(); ++i) {
-                sol::table pt = pointsTable[i];
-                points.push_back(Vector2D{pt[1].get<double>(), pt[2].get<double>()});
-            }
-            return self->points(std::move(points));
-        },
-        "size", [](CSharedPointer<CLineBuilder> self, CDynamicSize size) {
-            return self->size(std::move(size));
-        },
-        "commence", &CLineBuilder::commence
-    );
-
-    lua.new_usertype<CLineElement>("CLineElement",
-        sol::no_constructor,
-        sol::base_classes, sol::bases<IElement>(),
-        "rebuild", &CLineElement::rebuild,
-        "size", &CLineElement::size
-    );
-}
-
-// Main registration function for all element builders
-void registerElementBuilders(sol::state& lua) {
-    registerTextElement(lua);
-    registerButtonElement(lua);
-    registerTextboxElement(lua);
-    registerCheckboxElement(lua);
-    registerSliderElement(lua);
-    registerComboboxElement(lua);
-    registerSpinboxElement(lua);
-    registerRectangleElement(lua);
-    registerColumnLayoutElement(lua);
-    registerRowLayoutElement(lua);
-    registerScrollAreaElement(lua);
-    registerImageElement(lua);
-    registerNullElement(lua);
-    registerLineElement(lua);
+void registerElementBuilders(sol::table& module) {
+    registerTextElement(module);
+    registerButtonElement(module);
+    registerTextboxElement(module);
+    registerCheckboxElement(module);
+    registerRadioGroup(module);
+    registerSliderElement(module);
+    registerComboboxElement(module);
+    registerSpinboxElement(module);
+    registerRectangleElement(module);
+    registerColumnLayoutElement(module);
+    registerRowLayoutElement(module);
+    registerScrollAreaElement(module);
+    registerImageElement(module);
+    registerNullElement(module);
+    registerLineElement(module);
+    registerProgressBarElement(module);
 }
 
 } // namespace Hyprtoolkit::Lua

@@ -1,9 +1,12 @@
+local htk = require("hyprtoolkit")
+
 -- Simple Form Example for Hyprtoolkit Lua Bindings
 -- This demonstrates creating a basic registration form using Lua
 
 -- Create the backend (entry point)
-local backend = IBackend.create()
+local backend = htk.Backend.create()
 local palette = backend:getPalette()
+local connections = {}
 
 -- Helper function for palette text color
 local function textColor()
@@ -21,97 +24,97 @@ local function altBaseColor()
 end
 
 -- Create main window
-local window = CWindowBuilder.begin()
+local window = htk.WindowBuilder.begin()
     :appTitle("Lua Form Example")
     :appClass("hyprtoolkit-lua-form")
-    :preferredSize(Vector2D.new(450, 400))
-    :minSize(Vector2D.new(350, 300))
+    :preferredSize(htk.Vector2D.new(450, 400))
+    :minSize(htk.Vector2D.new(350, 300))
     :commence()
 
 -- Background rectangle (fills window)
-local bg = CRectangleBuilder.begin()
+local bg = htk.RectangleBuilder.begin()
     :color(bgColor)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_PERCENT,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.PERCENT,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
-window.m_rootElement:addChild(bg)
+window.rootElement:addChild(bg)
 
 -- Main content layout (column, centered)
-local mainLayout = CColumnLayoutBuilder.begin()
+local mainLayout = htk.ColumnLayoutBuilder.begin()
     :gap(12)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(0.85, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(0.85, 1)
     ))
     :commence()
 
 mainLayout:setMargin(20)
-mainLayout:setPositionMode(PositionMode.ABSOLUTE)
-mainLayout:setPositionFlag(PositionFlag.HCENTER, true)
+mainLayout:setPositionMode(htk.PositionMode.ABSOLUTE)
+mainLayout:setPositionFlag(htk.PositionFlag.HCENTER, true)
 
 bg:addChild(mainLayout)
 
 -- Title
-local title = CTextBuilder.begin()
+local title = htk.TextBuilder.begin()
     :text("User Registration")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_H1, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.H1, 1.0))
     :color(textColor)
-    :align(FontAlignment.CENTER)
+    :align(htk.FontAlignment.CENTER)
     :commence()
 
-title:setPositionFlag(PositionFlag.HCENTER, true)
+title:setPositionFlag(htk.PositionFlag.HCENTER, true)
 mainLayout:addChild(title)
 
 -- Subtitle
-local subtitle = CTextBuilder.begin()
+local subtitle = htk.TextBuilder.begin()
     :text("Please fill in your details below")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function()
         return palette.text:darken(0.3)
     end)
-    :align(FontAlignment.CENTER)
+    :align(htk.FontAlignment.CENTER)
     :commence()
 
-subtitle:setPositionFlag(PositionFlag.HCENTER, true)
+subtitle:setPositionFlag(htk.PositionFlag.HCENTER, true)
 mainLayout:addChild(subtitle)
 
 -- Separator line
-local separator = CRectangleBuilder.begin()
+local separator = htk.RectangleBuilder.begin()
     :color(function()
         return palette.text:darken(0.7)
     end)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(0.6, 2)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(0.6, 2)
     ))
     :commence()
 
 separator:setMargin(8)
-separator:setPositionFlag(PositionFlag.HCENTER, true)
+separator:setPositionFlag(htk.PositionFlag.HCENTER, true)
 mainLayout:addChild(separator)
 
 -- Name field label
-local nameLabel = CTextBuilder.begin()
+local nameLabel = htk.TextBuilder.begin()
     :text("Full Name:")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(textColor)
     :commence()
 
 mainLayout:addChild(nameLabel)
 
 -- Name input field
-local nameInput = CTextboxBuilder.begin()
+local nameInput = htk.TextboxBuilder.begin()
     :placeholder("Enter your full name")
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(1, 32)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(1, 32)
     ))
     :onTextEdited(function(textbox, text)
         print("[Form] Name changed to: " .. text)
@@ -121,59 +124,59 @@ local nameInput = CTextboxBuilder.begin()
 mainLayout:addChild(nameInput)
 
 -- Email field label
-local emailLabel = CTextBuilder.begin()
+local emailLabel = htk.TextBuilder.begin()
     :text("Email Address:")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(textColor)
     :commence()
 
 mainLayout:addChild(emailLabel)
 
 -- Email input field
-local emailInput = CTextboxBuilder.begin()
+local emailInput = htk.TextboxBuilder.begin()
     :placeholder("you@example.com")
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(1, 32)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(1, 32)
     ))
     :commence()
 
 mainLayout:addChild(emailInput)
 
 -- Priority slider row
-local sliderRow = CRowLayoutBuilder.begin()
+local sliderRow = htk.RowLayoutBuilder.begin()
     :gap(12)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
-local sliderLabel = CTextBuilder.begin()
+local sliderLabel = htk.TextBuilder.begin()
     :text("Priority:")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(textColor)
     :commence()
 
-local priorityValue = CTextBuilder.begin()
+local priorityValue = htk.TextBuilder.begin()
     :text("5")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(function()
         return palette.accent
     end)
     :commence()
 
-local prioritySlider = CSliderBuilder.begin()
+local prioritySlider = htk.SliderBuilder.begin()
     :min(1)
     :max(10)
     :val(5)
     :snapInt(true)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(0.5, 14)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(0.5, 14)
     ))
     :onChanged(function(slider, value)
         local intVal = math.floor(value + 0.5)
@@ -188,28 +191,28 @@ sliderRow:addChild(priorityValue)
 mainLayout:addChild(sliderRow)
 
 -- Category dropdown
-local categoryRow = CRowLayoutBuilder.begin()
+local categoryRow = htk.RowLayoutBuilder.begin()
     :gap(12)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
-local categoryLabel = CTextBuilder.begin()
+local categoryLabel = htk.TextBuilder.begin()
     :text("Category:")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(textColor)
     :commence()
 
-local categoryCombo = CComboboxBuilder.begin()
+local categoryCombo = htk.ComboboxBuilder.begin()
     :items({"General Inquiry", "Technical Support", "Sales", "Feedback", "Other"})
-    :currentItem(0)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(0.6, 28)
+    :currentItem(1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(0.6, 28)
     ))
     :onChanged(function(combo, index)
         print("[Form] Category selected: " .. tostring(index))
@@ -221,19 +224,18 @@ categoryRow:addChild(categoryCombo)
 mainLayout:addChild(categoryRow)
 
 -- Checkbox row for newsletter
-local checkboxRow = CRowLayoutBuilder.begin()
+local checkboxRow = htk.RowLayoutBuilder.begin()
     :gap(10)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_AUTO,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.AUTO,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
--- Track checkbox state via local variable (state() method not yet implemented)
 local newsletterSubscribed = false
 
-local newsletterCheck = CCheckboxBuilder.begin()
+local newsletterCheck = htk.CheckboxBuilder.begin()
     :toggled(false)
     :onToggled(function(checkbox, state)
         newsletterSubscribed = state
@@ -241,9 +243,9 @@ local newsletterCheck = CCheckboxBuilder.begin()
     end)
     :commence()
 
-local checkboxLabel = CTextBuilder.begin()
+local checkboxLabel = htk.TextBuilder.begin()
     :text("Subscribe to newsletter")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(textColor)
     :commence()
 
@@ -252,28 +254,27 @@ checkboxRow:addChild(checkboxLabel)
 mainLayout:addChild(checkboxRow)
 
 -- Terms checkbox
-local termsRow = CRowLayoutBuilder.begin()
+local termsRow = htk.RowLayoutBuilder.begin()
     :gap(10)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_AUTO,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.AUTO,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
--- Track terms checkbox state via local variable
 local termsAccepted = false
 
-local termsCheck = CCheckboxBuilder.begin()
+local termsCheck = htk.CheckboxBuilder.begin()
     :toggled(false)
     :onToggled(function(checkbox, state)
         termsAccepted = state
     end)
     :commence()
 
-local termsLabel = CTextBuilder.begin()
+local termsLabel = htk.TextBuilder.begin()
     :text("I agree to the terms and conditions")
-    :fontSize(CFontSize.new(CFontSize.HT_FONT_TEXT, 1.0))
+    :fontSize(htk.FontSize.new(htk.FontSizeBase.TEXT, 1.0))
     :color(textColor)
     :commence()
 
@@ -282,37 +283,37 @@ termsRow:addChild(termsLabel)
 mainLayout:addChild(termsRow)
 
 -- Spacer
-local spacer = CNullBuilder.begin()
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        CDynamicSize.HT_SIZE_ABSOLUTE,
-        Vector2D.new(0, 16)
+local spacer = htk.NullBuilder.begin()
+    :size(htk.DynamicSize.new(
+        htk.SizeType.ABSOLUTE,
+        htk.SizeType.ABSOLUTE,
+        htk.Vector2D.new(0, 16)
     ))
     :commence()
 
 mainLayout:addChild(spacer)
 
 -- Button row
-local buttonRow = CRowLayoutBuilder.begin()
+local buttonRow = htk.RowLayoutBuilder.begin()
     :gap(12)
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_PERCENT,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.PERCENT,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :commence()
 
 -- Right-align buttons with a spacer
-local buttonSpacer = CNullBuilder.begin():commence()
+local buttonSpacer = htk.NullBuilder.begin():commence()
 buttonSpacer:setGrow(true)
 
 -- Cancel button
-local cancelButton = CButtonBuilder.begin()
+local cancelButton = htk.ButtonBuilder.begin()
     :label("Cancel")
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_AUTO,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.AUTO,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :onMainClick(function(btn)
         print("[Form] Cancelled")
@@ -322,12 +323,12 @@ local cancelButton = CButtonBuilder.begin()
     :commence()
 
 -- Submit button
-local submitButton = CButtonBuilder.begin()
+local submitButton = htk.ButtonBuilder.begin()
     :label("Submit")
-    :size(CDynamicSize.new(
-        CDynamicSize.HT_SIZE_AUTO,
-        CDynamicSize.HT_SIZE_AUTO,
-        Vector2D.new(1, 1)
+    :size(htk.DynamicSize.new(
+        htk.SizeType.AUTO,
+        htk.SizeType.AUTO,
+        htk.Vector2D.new(1, 1)
     ))
     :onMainClick(function(btn)
         local name = nameInput:currentText()
@@ -363,7 +364,7 @@ buttonRow:addChild(submitButton)
 mainLayout:addChild(buttonRow)
 
 -- Handle window close request
-window:onCloseRequest(function()
+connections[#connections + 1] = window:onCloseRequest(function()
     print("[Form] Window close requested")
     window:close()
     backend:destroy()
