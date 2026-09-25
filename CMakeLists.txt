@@ -85,7 +85,8 @@ target_include_directories(
          ${LUA_INCLUDE_DIR}
   PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set_target_properties(hyprtoolkit-lua PROPERTIES VERSION ${HYPRTOOLKIT_LUA_VERSION}
-                                                  SOVERSION 0)
+                                                  SOVERSION 0
+                                                  INSTALL_RPATH "$ORIGIN")
 target_compile_options(
   hyprtoolkit-lua
   PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-unused-value
@@ -99,7 +100,9 @@ target_link_libraries(
   PUBLIC PkgConfig::HYPRTOOLKIT ${LUA_LIBRARIES} sol2::sol2)
 
 add_executable(hyprtoolkit-lua-runner "runner/main.cpp")
-set_target_properties(hyprtoolkit-lua-runner PROPERTIES OUTPUT_NAME "hyprtoolkit-lua")
+set_target_properties(hyprtoolkit-lua-runner PROPERTIES
+                      OUTPUT_NAME "hyprtoolkit-lua"
+                      INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
 target_link_libraries(hyprtoolkit-lua-runner PRIVATE hyprtoolkit-lua sol2::sol2)
 
 configure_file(hyprtoolkit-lua.pc.in hyprtoolkit-lua.pc @ONLY)

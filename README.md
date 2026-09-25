@@ -87,29 +87,54 @@ branch, and tagged releases such as `v0.6.0` are missing APIs it uses. If
 configuration stops with "requires Hyprtoolkit's development branch", CMake
 found a release build instead of a `main` build.
 
-Build Hyprtoolkit from `main` into a prefix:
+From this repository, build Hyprtoolkit from `main` into `$HOME/.local`.
+If you already have a `main` checkout, use its path in place of
+`../hyprtoolkit-source`. These commands work in Fish and Bash:
 
 ```bash
-git clone https://github.com/hyprwm/hyprtoolkit
-cmake -S hyprtoolkit -B hyprtoolkit/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/.local"
-cmake --build hyprtoolkit/build -j"$(nproc)"
-cmake --install hyprtoolkit/build
+git clone --branch main https://github.com/hyprwm/hyprtoolkit ../hyprtoolkit-source
+cmake -S ../hyprtoolkit-source -B ../hyprtoolkit-source/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/.local"
+cmake --build ../hyprtoolkit-source/build --parallel 4
+cmake --install ../hyprtoolkit-source/build
+```
+
+Check that pkg-config sees the local installation. This command should print
+`$HOME/.local/lib`, expanded to your home directory:
+
+```bash
+env PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig" pkg-config --variable=libdir hyprtoolkit
 ```
 
 Then build and install hyprtoolkit-lua against it. The first configure fetches
-[sol2](https://github.com/ThePhD/sol2), so it needs network access.
+[sol2](https://github.com/ThePhD/sol2), so it needs network access. Use a new
+build directory if you previously configured against another Hyprtoolkit
+installation; CMake caches the pkg-config paths.
 
 ```bash
-export PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig"
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/.local"
-cmake --build build -j"$(nproc)"
-cmake --install build
+env PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig" cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/.local"
+cmake --build build-local --parallel 4
+cmake --install build-local
 ```
 
 This installs the `hyprtoolkit-lua` runner, the `libhyprtoolkit-lua` library,
-its headers (plus the sol2 headers they use), and a `hyprtoolkit-lua.pc` file. If you installed to a
-non-system prefix, make sure its `bin` is on your `PATH` and its `lib` is
-visible to the dynamic loader.
+its headers (plus the sol2 headers they use), and a `hyprtoolkit-lua.pc` file.
+The installed runner looks for both shared libraries in `$HOME/.local/lib`.
+`PKG_CONFIG_PATH` selects the library at build time; it does not configure the
+runtime loader. Verify that both libraries resolve without any `not found`
+lines:
+
+```bash
+ldd "$HOME/.local/bin/hyprtoolkit-lua" | grep -E 'libhyprtoolkit|not found'
+```
+
+If `libhyprtoolkit-lua.so.0` is still `not found`, rebuild and reinstall this
+checkout to give the runner its library search path. If `libhyprtoolkit.so`
+is `not found`, install the matching Hyprtoolkit `main` build into the same
+prefix, then rebuild hyprtoolkit-lua against it. Do not link a different
+Hyprtoolkit shared-library version under the missing name.
+
+If `hyprtoolkit-lua` is not on your `PATH`, add `$HOME/.local/bin`. In Fish,
+run `fish_add_path "$HOME/.local/bin"`.
 
 The runner passes extra command-line arguments to your script through the
 standard `arg` table:
