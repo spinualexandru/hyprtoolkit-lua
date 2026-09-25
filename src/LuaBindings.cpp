@@ -8,7 +8,7 @@ using namespace Hyprutils::Memory;
 namespace Hyprtoolkit::Lua {
 
 #ifndef HYPRTOOLKIT_LUA_VERSION
-#define HYPRTOOLKIT_LUA_VERSION "0.2.0"
+#define HYPRTOOLKIT_LUA_VERSION "0.3.0"
 #endif
 
 #ifndef HYPRTOOLKIT_LUA_UPSTREAM_BRANCH

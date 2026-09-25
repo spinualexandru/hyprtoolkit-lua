@@ -12,14 +12,29 @@ names live below the table returned by `require("hyprtoolkit")`.
 | `Box` | `new()`, `new(x, y, w, h)`, `new(pos, size)`; read/write `x`, `y`, `w`, `h`; `pos`, `size`, `middle`, `containsPoint`, `empty`, `intersection`, `expand`, `round`, `translate`, `scale` |
 | `Color` | `new()`, `new(r, g, b[, a])`, `fromHex`; read/write `r`, `g`, `b`, `a`; `getAsHex`, `asRGB`, `asHSL`, `asOkLab`, `brighten`, `darken`, `mix`, `stripA`; `+`, `-`, scalar `*`, `==`, string conversion |
 | `Gradient` | `new(colors[, angle])`, `solid(color)`; read/write `colors`, `angle`; `==` |
-| `DynamicSize` | `new(typeX, typeY, vector)`, `absolute`, `percent`, `auto`, `mixed`; `calculate` |
+| `DynamicSize` | `new(typeX, typeY, vector)`, `absolute`, `percent`, `auto`, `mixed`; `calculate(elementSize[, grow=true])` |
 | `FontSize` | `new(base[, multiplier])`, `h1`, `h2`, `h3`, `text`, `small`, `absolute`; `ptSize` |
 | `KeyboardKeyEvent` | read-only callback fields `xkbKeysym`, `down`, `repeat`, `utf8`, `modMask`; `hasModifier` |
+| `TouchEvent` | read-only callback fields `id`, `position`, `timeMs` |
+| `NoAnimation` | `new()`; `==` |
+| `BezierAnimation` | `new([fields])`; read/write `durationMs`, `control1`, `control2`; `==` |
+| `SpringAnimation` | `new([fields])`; read/write `stiffness`, `damping`, `mass`, `valueEpsilon`, `velocityEpsilon`; `==` |
+| `AnimationPresets` | read-only `Slow`, `Medium`, `Fast`, `Snappy`, `Bouncy` (each a `SpringAnimation`) |
 | `Palette` | `palette`, `emptyPalette`; read/write colors `background`, `text`, `base`, `alternateBase`, `brightText`, `linkText`, `accent`, `accentSecondary`; read/write variables `h1Size`, `h2Size`, `h3Size`, `fontSize`, `smallFontSize`, `iconTheme`, `bigRounding`, `smallRounding`, `fontFamily`, `fontFamilyMonospace` |
 
 `Color:asRGB()` returns `{r, g, b}`, `asHSL()` returns `{h, s, l}`, and
 `asOkLab()` returns `{l, a, b}`. A `Gradient` or a callback returning one can
 be passed anywhere upstream accepts a `gradientFn`.
+
+`TouchEvent.position` is upstream's element-local `local` field, renamed
+because `local` is a Lua keyword.
+
+Animation values correspond to upstream's `SAnimation` alternatives.
+`BezierAnimation.new` and `SpringAnimation.new` start from upstream's defaults
+and accept an optional table of the listed fields, for example
+`SpringAnimation.new({ stiffness = 300, damping = 14 })`. Unknown fields and
+wrongly typed values raise an error. Each `AnimationPresets` lookup returns a
+fresh copy, so modifying one does not change the preset.
 
 ## Enums and constants
 
@@ -69,7 +84,20 @@ Every concrete element inherits:
 `setPositionMode`, `setPositionFlag`, `setAbsolutePosition`, `addChild`,
 `removeChild`, `clearChildren`, `setMargin`, `setGrouped`, `setTooltip`,
 `setGrow(x[, y])`, `setReceivesMouse`, `setMouseEnter`, `setMouseLeave`,
-`setMouseMove`, `setMouseButton`, `setMouseAxis`, and `setRepositioned`.
+`setMouseMove`, `setMouseButton`, `setMouseAxis`, `setReceivesTouch`,
+`setTouchDown`, `setTouchMotion`, `setTouchUp`, `setTouchCancel`,
+`setRepositioned`, `setOpacity`, `animateOpacity`, and `animateGeometry`.
+
+`animateOpacity`, `animateGeometry`, and the element-specific `animateColor` /
+`animateBorderColor` methods take a `NoAnimation`, `BezierAnimation`, or
+`SpringAnimation`. They install a persistent policy: later property or layout
+changes animate, and passing `NoAnimation.new()` removes the policy. Geometry
+animation is presentation-only; layout and input use the final coordinates
+immediately.
+
+Touch callbacks receive a `TouchEvent`. Upstream currently delivers touch input
+only through embedded surfaces, so these callbacks do not fire in windows
+created by the native Wayland backend.
 
 Color-taking builder methods accept a `Color` or a callback returning one.
 `RectangleBuilder:borderGradient` accepts a `Gradient`, a `Color` (solid
@@ -77,17 +105,17 @@ gradient), or a callback returning either.
 
 | Builder | Builder methods after `begin()` | Element-specific methods |
 | --- | --- | --- |
-| `TextBuilder` / `TextElement` | `text`, `color`, `a`, `fontSize`, `align`, `fontFamily`, `clampSize`, `callback`, `noEllipsize`, `size`, `async`, `interactable`, `commence` | `rebuild`, `size`, `setText` |
+| `TextBuilder` / `TextElement` | `text`, `color`, `a`, `fontSize`, `align`, `fontFamily`, `clampSize`, `callback`, `noEllipsize`, `size`, `async`, `interactable`, `commence` | `rebuild`, `size`, `setText`, `animateColor` |
 | `ButtonBuilder` / `ButtonElement` | `label`, `noBorder`, `noBg`, `accent`, `ellipsize`, `enabled`, `alignText`, `fontFamily`, `fontSize`, `onMainClick`, `onRightClick`, `size`, `commence` | `rebuild`, `size`, `setLabel`, `setEnabled` |
 | `TextboxBuilder` / `TextboxElement` | `placeholder`, `defaultText`, `onTextEdited`, `multiline`, `password`, `eyeIcon`, `size`, `commence` | `rebuild`, `size`, `focus([true])`, `currentText`, `cursorPos`, `selection`, `setText`, `setPassword` |
 | `CheckboxBuilder` / `CheckboxElement` | `toggled`, `style`, `onToggled`, `size`, `commence` | `rebuild`, `size`, `state`, `setState` |
-| `SliderBuilder` / `SliderElement` | `min`, `max`, `val`, `snapInt`, `onChanged`, `size`, `commence` | `rebuild`, `size`, `sliding` |
+| `SliderBuilder` / `SliderElement` | `min`, `max`, `val`, `snapInt`, `showLabel`, `onChanged`, `size`, `commence` | `rebuild`, `size`, `sliding` |
 | `ComboboxBuilder` / `ComboboxElement` | `items`, `currentItem`, `onChanged`, `size`, `commence` | `rebuild`, `size`, `current`, `setCurrent` |
 | `SpinboxBuilder` / `SpinboxElement` | `label`, `items`, `currentItem`, `onChanged`, `fill`, `size`, `commence` | `rebuild`, `size`, `current`, `setCurrent` |
-| `RectangleBuilder` / `RectangleElement` | `color`, `borderColor`, `borderGradient`, `rounding`, `borderThickness`, `size`, `commence` | `rebuild`, `size` |
+| `RectangleBuilder` / `RectangleElement` | `color`, `borderColor`, `borderGradient`, `rounding`, `borderThickness`, `size`, `commence` | `rebuild`, `size`, `animateColor`, `animateBorderColor` |
 | `ColumnLayoutBuilder` / `ColumnLayoutElement` | `gap`, `size`, `commence` | `rebuild`, `size` |
-| `RowLayoutBuilder` / `RowLayoutElement` | `gap`, `size`, `commence` | `size` |
-| `ScrollAreaBuilder` / `ScrollAreaElement` | `scrollX`, `scrollY`, `blockUserScroll`, `showScrollbar`, `size`, `commence` | `size`, `getCurrentScroll`, `setScroll` |
+| `RowLayoutBuilder` / `RowLayoutElement` | `gap`, `size`, `commence` | `rebuild`, `size` |
+| `ScrollAreaBuilder` / `ScrollAreaElement` | `scrollX`, `scrollY`, `blockUserScroll`, `showScrollbar`, `size`, `commence` | `rebuild`, `size`, `getCurrentScroll`, `setScroll` |
 | `ImageBuilder` / `ImageElement` | `path`, `icon`, `data`, `a`, `fitMode`, `sync`, `rounding`, `size`, `commence` | `rebuild`, `size` |
 | `NullBuilder` / `NullElement` | `size`, `commence` | `rebuild`, `size` |
 | `LineBuilder` / `LineElement` | `color`, `thick`, `points`, `size`, `commence` | `rebuild`, `size` |
@@ -97,15 +125,16 @@ gradient), or a callback returning either.
 and `onSelected`.
 
 `ImageBuilder:data` accepts a binary Lua string or a dense byte array. Byte
-array entries must be integers in `0..255`. Combobox and spinbox indices are
-always 1-based. Textbox cursor and selection results are upstream byte offsets;
-`selection()` returns two offsets.
+array entries must be integers in `0..255`. Upstream treats `path`, `icon`, and
+`data` as exclusive sources: the last one set wins.
 
-The development-branch headers declare `RowLayoutElement:rebuild()` and
-`ScrollAreaElement:rebuild()`, but the corresponding library does not define
-or export either symbol. Calling or binding them would make consumers fail to
-link, so they are the two documented exceptions pending an upstream
-implementation.
+Combobox and spinbox indices are always 1-based. Their item lists may be empty;
+an empty list reports `current() == 1`, ignores `setCurrent`, and never calls
+`onChanged`.
+
+Textbox cursor and selection results are upstream byte offsets; `selection()`
+returns two offsets. `onTextEdited` fires only for committed user edits, not
+for `setText`, `rebuild`, or uncommitted input-method preedit text.
 
 ## Windows
 
@@ -129,3 +158,8 @@ These facilities are not Lua-meaningful or are unsafe implementation details:
   results are returned as named Lua records.
 - Raw Hyprutils signal objects and static listeners; Lua receives
   disconnectable `SignalConnection` adapters.
+- The embedded backend (`IEmbeddedBackend`, `IEmbeddedSurface`) and its host
+  service interfaces (`IEventLoop`, `IClipboard`, `ITextInput`, `ICursor`,
+  `IOutputProvider`, `ISessionLockProvider`). The host must own a current GLES3
+  context and framebuffer and drive rendering and input, which a Lua script
+  cannot provide.

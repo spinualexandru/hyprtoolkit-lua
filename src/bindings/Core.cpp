@@ -30,7 +30,7 @@ void registerOutput(sol::table& module) {
     module.new_usertype<IOutput>(
         "Output", sol::no_constructor, "handle", &IOutput::handle, "port", &IOutput::port, "desc", &IOutput::desc, "fps", &IOutput::fps, "onRemoved",
         [](IOutput& self, sol::protected_function callback) {
-            auto listener = self.m_events.removed.listen([callback = std::move(callback)]() {
+            auto listener = self.m_events.removed.listen([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Output.onRemoved");
             });
             return makeShared<CSignalConnection>(std::move(listener));
@@ -44,7 +44,7 @@ void registerSessionLock(sol::table& module) {
     module.new_usertype<ISessionLockState>(
         "SessionLockState", sol::no_constructor, "unlock", &ISessionLockState::unlock, "onFinished",
         [](ISessionLockState& self, sol::protected_function callback) {
-            auto listener = self.m_events.finished.listen([callback = std::move(callback)]() {
+            auto listener = self.m_events.finished.listen([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "SessionLockState.onFinished");
             });
             return makeShared<CSignalConnection>(std::move(listener));
@@ -73,7 +73,7 @@ void registerBackend(sol::table& module) {
         },
         "setLogCallback",
         [](IBackend& self, sol::protected_function callback) {
-            self.setLogFn([callback = std::move(callback)](eLogLevel level, const std::string& message) {
+            self.setLogFn([callback = CLuaCallback{std::move(callback)}](eLogLevel level, const std::string& message) {
                 invokeLuaCallback(callback, "Backend.setLogCallback", level, message);
             });
         },
@@ -81,20 +81,20 @@ void registerBackend(sol::table& module) {
         [](CSharedPointer<IBackend> self, double timeoutMs, sol::protected_function callback, sol::optional<bool> force) {
             return self->addTimer(
                 std::chrono::milliseconds{static_cast<int64_t>(timeoutMs)},
-                [callback = std::move(callback)](CAtomicSharedPointer<CTimer> timer, void*) {
+                [callback = CLuaCallback{std::move(callback)}](CAtomicSharedPointer<CTimer> timer, void*) {
                     invokeLuaCallback(callback, "Backend.addTimer", timer);
                 },
                 nullptr, force.value_or(false));
         },
         "addIdle",
         [](IBackend& self, sol::protected_function callback) {
-            self.addIdle([callback = std::move(callback)]() {
+            self.addIdle([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Backend.addIdle");
             });
         },
         "addFd",
         [](IBackend& self, int fd, sol::protected_function callback) {
-            self.addFd(fd, [callback = std::move(callback)]() {
+            self.addFd(fd, [callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Backend.addFd");
             });
         },
@@ -108,7 +108,7 @@ void registerBackend(sol::table& module) {
         },
         "onOutputAdded",
         [](IBackend& self, sol::protected_function callback) {
-            auto listener = self.m_events.outputAdded.listen([callback = std::move(callback)](const CSharedPointer<IOutput>& output) {
+            auto listener = self.m_events.outputAdded.listen([callback = CLuaCallback{std::move(callback)}](const CSharedPointer<IOutput>& output) {
                 invokeLuaCallback(callback, "Backend.onOutputAdded", output);
             });
             return makeShared<CSignalConnection>(std::move(listener));

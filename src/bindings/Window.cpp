@@ -48,35 +48,35 @@ void registerWindow(sol::table& module) {
                       [](IWindow& self, const sol::object& root) { self.m_rootElement = luaToElement(root); }),
         "onResized",
         [](IWindow& self, sol::protected_function callback) {
-            auto listener = self.m_events.resized.listen([callback = std::move(callback)](Vector2D size) {
+            auto listener = self.m_events.resized.listen([callback = CLuaCallback{std::move(callback)}](Vector2D size) {
                 invokeLuaCallback(callback, "Window.onResized", size);
             });
             return makeShared<CSignalConnection>(std::move(listener));
         },
         "onCloseRequest",
         [](IWindow& self, sol::protected_function callback) {
-            auto listener = self.m_events.closeRequest.listen([callback = std::move(callback)]() {
+            auto listener = self.m_events.closeRequest.listen([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Window.onCloseRequest");
             });
             return makeShared<CSignalConnection>(std::move(listener));
         },
         "onPopupClosed",
         [](IWindow& self, sol::protected_function callback) {
-            auto listener = self.m_events.popupClosed.listen([callback = std::move(callback)]() {
+            auto listener = self.m_events.popupClosed.listen([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Window.onPopupClosed");
             });
             return makeShared<CSignalConnection>(std::move(listener));
         },
         "onLayerClosed",
         [](IWindow& self, sol::protected_function callback) {
-            auto listener = self.m_events.layerClosed.listen([callback = std::move(callback)]() {
+            auto listener = self.m_events.layerClosed.listen([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Window.onLayerClosed");
             });
             return makeShared<CSignalConnection>(std::move(listener));
         },
         "onKeyboardKey",
         [](IWindow& self, sol::protected_function callback) {
-            auto listener = self.m_events.keyboardKey.listen([callback = std::move(callback)](const Input::SKeyboardKeyEvent& event) {
+            auto listener = self.m_events.keyboardKey.listen([callback = CLuaCallback{std::move(callback)}](const Input::SKeyboardKeyEvent& event) {
                 invokeLuaCallback(callback, "Window.onKeyboardKey", event);
             });
             return makeShared<CSignalConnection>(std::move(listener));

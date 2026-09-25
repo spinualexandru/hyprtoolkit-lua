@@ -26,17 +26,18 @@ inline gradientFn luaToGradientFn(const sol::object& object) {
     if (!object.is<sol::protected_function>())
         throw sol::error("borderGradient expects a Gradient, Color, or function");
 
-    sol::protected_function function = object.as<sol::protected_function>();
-    return [function = std::move(function)]() -> CGradientValueData {
-        sol::protected_function_result result = function();
-        if (!result.valid()) {
-            const sol::error error = result;
+    return [function = CLuaCallback{object.as<sol::protected_function>()}]() -> CGradientValueData {
+        std::optional<sol::protected_function_result> result = function.call();
+        if (!result)
+            return CGradientValueData{CHyprColor{0.F, 0.F, 0.F, 1.F}};
+        if (!result->valid()) {
+            const sol::error error = *result;
             reportLuaCallbackError("RectangleBuilder.borderGradient", error.what());
             return CGradientValueData{CHyprColor{0.F, 0.F, 0.F, 1.F}};
         }
 
         try {
-            return luaToGradientValue(result.get<sol::object>());
+            return luaToGradientValue(result->get<sol::object>());
         } catch (const std::exception& error) {
             reportLuaCallbackError("RectangleBuilder.borderGradient", error.what());
             return CGradientValueData{CHyprColor{0.F, 0.F, 0.F, 1.F}};

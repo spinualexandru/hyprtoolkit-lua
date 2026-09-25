@@ -1,4 +1,5 @@
 #include <hyprgraphics/color/Color.hpp>
+#include <hyprtoolkit/core/Animation.hpp>
 #include <hyprtoolkit/core/Input.hpp>
 #include <hyprtoolkit/palette/Color.hpp>
 #include <hyprtoolkit/palette/Gradient.hpp>
@@ -8,6 +9,12 @@
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 #include <sol/sol.hpp>
+
+#include <algorithm>
+#include <array>
+#include <initializer_list>
+#include <string_view>
+#include <utility>
 
 #include "../helpers/GradientFnAdapter.hpp"
 #include "../helpers/SmartPtrAdapter.hpp"
@@ -107,7 +114,9 @@ void registerDynamicSize(sol::table& module) {
         "SizeType", {{"ABSOLUTE", CDynamicSize::HT_SIZE_ABSOLUTE}, {"PERCENT", CDynamicSize::HT_SIZE_PERCENT}, {"AUTO", CDynamicSize::HT_SIZE_AUTO}});
 
     module.new_usertype<CDynamicSize>("DynamicSize", sol::constructors<CDynamicSize(CDynamicSize::eSizingType, CDynamicSize::eSizingType, const Vector2D&)>(), "calculate",
-                                     &CDynamicSize::calculate);
+                                     [](const CDynamicSize& self, const Vector2D& elementSize, sol::optional<bool> grow) {
+                                         return self.calculate(elementSize, grow.value_or(true));
+                                     });
 
     sol::table size = module["DynamicSize"];
     size["absolute"] = [](double width, double height) {
@@ -160,6 +169,98 @@ void registerInputTypes(sol::table& module) {
         [](const Input::SKeyboardKeyEvent& event, Input::eKeyboardModifier modifier) {
             return (event.modMask & static_cast<uint32_t>(modifier)) != 0;
         });
+
+    // Upstream's element-local `local` field is exposed as `position` because `local` is a Lua keyword.
+    module.new_usertype<Input::STouchEvent>("TouchEvent", sol::no_constructor, "id", &Input::STouchEvent::id, "position", &Input::STouchEvent::local, "timeMs",
+                                            &Input::STouchEvent::timeMs);
+}
+
+static void rejectUnknownFields(const sol::table& fields, std::initializer_list<std::string_view> known, std::string_view context) {
+    for (const auto& [key, value] : fields) {
+        if (key.get_type() != sol::type::string)
+            throw sol::error(std::string{context} + " expects a table with string keys");
+        if (std::ranges::find(known, key.as<std::string_view>()) == known.end())
+            throw sol::error(std::string{context} + " received unknown field '" + key.as<std::string>() + "'");
+    }
+}
+
+template <typename T>
+static void readField(const sol::table& fields, const char* name, T& out, std::string_view context) {
+    const sol::object value = fields[name];
+    if (value.get_type() == sol::type::lua_nil)
+        return;
+    if (!value.is<T>())
+        throw sol::error(std::string{context} + " field '" + name + "' has the wrong type");
+    out = value.as<T>();
+}
+
+void registerAnimationTypes(sol::table& module) {
+    module.new_usertype<SNoAnimation>("NoAnimation", sol::constructors<SNoAnimation()>(), sol::meta_function::equal_to, &SNoAnimation::operator==);
+
+    module.new_usertype<SBezierAnimation>(
+        "BezierAnimation", sol::no_constructor, "durationMs",
+        sol::property([](const SBezierAnimation& self) { return self.duration.count(); },
+                      [](SBezierAnimation& self, double durationMs) { self.duration = std::chrono::milliseconds{static_cast<int64_t>(durationMs)}; }),
+        "control1", &SBezierAnimation::control1, "control2", &SBezierAnimation::control2, sol::meta_function::equal_to, &SBezierAnimation::operator==);
+    sol::table bezier = module["BezierAnimation"];
+    bezier["new"]     = [](sol::optional<sol::table> fields) {
+        SBezierAnimation animation;
+        if (!fields)
+            return animation;
+
+        rejectUnknownFields(*fields, {"durationMs", "control1", "control2"}, "BezierAnimation.new");
+        double durationMs = static_cast<double>(animation.duration.count());
+        readField(*fields, "durationMs", durationMs, "BezierAnimation.new");
+        animation.duration = std::chrono::milliseconds{static_cast<int64_t>(durationMs)};
+        readField(*fields, "control1", animation.control1, "BezierAnimation.new");
+        readField(*fields, "control2", animation.control2, "BezierAnimation.new");
+        return animation;
+    };
+
+    module.new_usertype<SSpringAnimation>(
+        "SpringAnimation", sol::no_constructor, "stiffness", &SSpringAnimation::stiffness, "damping", &SSpringAnimation::damping, "mass", &SSpringAnimation::mass,
+        "valueEpsilon", &SSpringAnimation::valueEpsilon, "velocityEpsilon", &SSpringAnimation::velocityEpsilon, sol::meta_function::equal_to,
+        &SSpringAnimation::operator==);
+    sol::table spring = module["SpringAnimation"];
+    spring["new"]     = [](sol::optional<sol::table> fields) {
+        SSpringAnimation animation;
+        if (!fields)
+            return animation;
+
+        rejectUnknownFields(*fields, {"stiffness", "damping", "mass", "valueEpsilon", "velocityEpsilon"}, "SpringAnimation.new");
+        readField(*fields, "stiffness", animation.stiffness, "SpringAnimation.new");
+        readField(*fields, "damping", animation.damping, "SpringAnimation.new");
+        readField(*fields, "mass", animation.mass, "SpringAnimation.new");
+        readField(*fields, "valueEpsilon", animation.valueEpsilon, "SpringAnimation.new");
+        readField(*fields, "velocityEpsilon", animation.velocityEpsilon, "SpringAnimation.new");
+        return animation;
+    };
+
+    // Presets are upstream constants, so every lookup returns a fresh copy that callers can modify safely.
+    static constexpr std::array<std::pair<std::string_view, SSpringAnimation>, 5> PRESETS = {{
+        {"Slow", AnimationPresets::Slow},
+        {"Medium", AnimationPresets::Medium},
+        {"Fast", AnimationPresets::Fast},
+        {"Snappy", AnimationPresets::Snappy},
+        {"Bouncy", AnimationPresets::Bouncy},
+    }};
+
+    sol::state_view lua(module.lua_state());
+    sol::table      presetsMeta            = lua.create_table();
+    presetsMeta[sol::meta_function::index] = [](const sol::table&, std::string_view name) -> sol::optional<SSpringAnimation> {
+        for (const auto& [presetName, preset] : PRESETS) {
+            if (presetName == name)
+                return preset;
+        }
+        return sol::nullopt;
+    };
+    presetsMeta[sol::meta_function::new_index] = [](const sol::table&, const sol::object&, const sol::object&) {
+        throw sol::error("AnimationPresets is read-only");
+    };
+
+    sol::table presets          = lua.create_table();
+    presets[sol::metatable_key] = presetsMeta;
+    module["AnimationPresets"]  = presets;
 }
 
 void registerPalette(sol::table& module) {
@@ -190,6 +291,7 @@ void registerTypes(sol::table& module) {
     registerDynamicSize(module);
     registerFontTypes(module);
     registerInputTypes(module);
+    registerAnimationTypes(module);
     registerPalette(module);
 }
 

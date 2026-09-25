@@ -6,12 +6,14 @@ assert(_G.CTextBuilder == nil)
 assert(_G.CWindow == nil)
 assert(_G.CColor == nil)
 
-assert(htk.VERSION == "0.2.0")
+assert(htk.VERSION == "0.3.0")
 assert(htk.UPSTREAM_API_BRANCH == "main")
 
 local requiredTables = {
     "Vector2D", "Box", "Color", "Gradient", "DynamicSize", "FontSize",
-    "KeyboardKeyEvent", "Palette", "SizeType", "FontSizeBase", "FontAlignment",
+    "KeyboardKeyEvent", "TouchEvent", "NoAnimation", "BezierAnimation",
+    "SpringAnimation", "AnimationPresets", "Palette", "SizeType",
+    "FontSizeBase", "FontAlignment",
     "MouseButton", "Axis", "KeyboardModifier", "LogLevel", "SessionLockError",
     "PositionMode", "PositionFlag", "PointerShape", "ImageFitMode",
     "CheckboxStyle", "WindowType", "ResizeEdge", "Layer", "LayerAnchor",
@@ -129,6 +131,15 @@ assertMembers("KeyboardKeyEvent", {
 assertProperties("KeyboardKeyEvent", {
     "xkbKeysym", "down", "repeat", "utf8", "modMask",
 })
+assertProperties("TouchEvent", { "id", "position", "timeMs" })
+assertMembers("NoAnimation", { "new" })
+assertMembers("BezierAnimation", { "new" })
+assertProperties("BezierAnimation", { "durationMs", "control1", "control2" })
+assertMembers("SpringAnimation", { "new" })
+assertProperties("SpringAnimation", {
+    "stiffness", "damping", "mass", "valueEpsilon", "velocityEpsilon",
+})
+assertMembers("AnimationPresets", { "Slow", "Medium", "Fast", "Snappy", "Bouncy" })
 assertMembers("Palette", {
     "palette", "emptyPalette",
 })
@@ -159,7 +170,9 @@ assertMembers("Element", {
     "setPositionFlag", "setAbsolutePosition", "addChild", "removeChild",
     "clearChildren", "setMargin", "setGrouped", "setTooltip", "setGrow",
     "setReceivesMouse", "setMouseEnter", "setMouseLeave", "setMouseMove",
-    "setMouseButton", "setMouseAxis", "setRepositioned",
+    "setMouseButton", "setMouseAxis", "setReceivesTouch", "setTouchDown",
+    "setTouchMotion", "setTouchUp", "setTouchCancel", "setRepositioned",
+    "setOpacity", "animateOpacity", "animateGeometry",
 })
 
 local vector = htk.Vector2D.new(4, 6)
@@ -212,6 +225,10 @@ assert(htk.DynamicSize.percent(0.5, 1) ~= nil)
 assert(htk.DynamicSize.auto() ~= nil)
 assert(htk.DynamicSize.absolute(10, 20):calculate(htk.Vector2D.new(100, 100))
     == htk.Vector2D.new(10, 20))
+assert(htk.DynamicSize.absolute(10, 20):calculate(htk.Vector2D.new(100, 100), false)
+    == htk.Vector2D.new(10, 20))
+assert(htk.DynamicSize.percent(0.5, 1):calculate(htk.Vector2D.new(100, 40), true)
+    == htk.Vector2D.new(50, 40))
 assert(htk.FontSize.new(htk.FontSizeBase.H1) ~= nil)
 assert(htk.FontSize.absolute(12):ptSize() == 12)
 assert(htk.FontSize.h1() ~= nil)
@@ -219,6 +236,46 @@ assert(htk.FontSize.h2(1.2) ~= nil)
 assert(htk.FontSize.h3() ~= nil)
 assert(htk.FontSize.text() ~= nil)
 assert(htk.FontSize.small() ~= nil)
+
+local noAnimation = htk.NoAnimation.new()
+assert(noAnimation == htk.NoAnimation.new())
+
+local bezier = htk.BezierAnimation.new()
+assert(bezier.durationMs == 200)
+assert(bezier.control1 == htk.Vector2D.new(0.23, 1))
+assert(bezier.control2 == htk.Vector2D.new(0.32, 1))
+bezier = htk.BezierAnimation.new({
+    durationMs = 350,
+    control1 = htk.Vector2D.new(0.4, 0),
+})
+assert(bezier.durationMs == 350)
+assert(bezier.control1 == htk.Vector2D.new(0.4, 0))
+assert(bezier.control2 == htk.Vector2D.new(0.32, 1))
+bezier.durationMs = 120
+assert(bezier.durationMs == 120)
+assert(not pcall(htk.BezierAnimation.new, { duration = 100 }))
+assert(not pcall(htk.BezierAnimation.new, { control1 = { 0.4, 0 } }))
+
+local spring = htk.SpringAnimation.new()
+assert(spring.stiffness == 250 and spring.damping == 25 and spring.mass == 1)
+assert(spring == htk.AnimationPresets.Medium)
+spring = htk.SpringAnimation.new({ stiffness = 300, damping = 14 })
+assert(spring == htk.AnimationPresets.Bouncy)
+spring.mass = 2
+assert(spring.mass == 2)
+assert(not pcall(htk.SpringAnimation.new, { stifness = 300 }))
+assert(not pcall(htk.SpringAnimation.new, { damping = "loose" }))
+
+assert(htk.AnimationPresets.Fast.stiffness == 450)
+assert(htk.AnimationPresets.Snappy.damping == 42)
+assert(htk.AnimationPresets.Slow.stiffness == 120)
+assert(htk.AnimationPresets.Missing == nil)
+local preset = htk.AnimationPresets.Fast
+preset.stiffness = 1
+assert(htk.AnimationPresets.Fast.stiffness == 450)
+assert(not pcall(function()
+    htk.AnimationPresets.Custom = spring
+end))
 
 local palette = htk.Palette.emptyPalette()
 local paletteColorProperties = {
@@ -249,7 +306,7 @@ local elementMethods = {
             "clampSize", "callback", "noEllipsize", "size", "async",
             "interactable", "commence",
         },
-        element = { "rebuild", "size", "setText" },
+        element = { "rebuild", "size", "setText", "animateColor" },
     },
     Button = {
         builder = {
@@ -275,8 +332,8 @@ local elementMethods = {
     },
     Slider = {
         builder = {
-            "begin", "min", "max", "val", "snapInt", "onChanged", "size",
-            "commence",
+            "begin", "min", "max", "val", "snapInt", "showLabel", "onChanged",
+            "size", "commence",
         },
         element = { "rebuild", "size", "sliding" },
     },
@@ -296,7 +353,7 @@ local elementMethods = {
             "begin", "color", "borderColor", "borderGradient", "rounding",
             "borderThickness", "size", "commence",
         },
-        element = { "rebuild", "size" },
+        element = { "rebuild", "size", "animateColor", "animateBorderColor" },
     },
     ColumnLayout = {
         builder = { "begin", "gap", "size", "commence" },
@@ -304,14 +361,14 @@ local elementMethods = {
     },
     RowLayout = {
         builder = { "begin", "gap", "size", "commence" },
-        element = { "size" },
+        element = { "rebuild", "size" },
     },
     ScrollArea = {
         builder = {
             "begin", "scrollX", "scrollY", "blockUserScroll", "showScrollbar",
             "size", "commence",
         },
-        element = { "size", "getCurrentScroll", "setScroll" },
+        element = { "rebuild", "size", "getCurrentScroll", "setScroll" },
     },
     Image = {
         builder = {
@@ -364,6 +421,12 @@ end))
 assert(not pcall(function()
     htk.ComboboxBuilder.begin():items({ "one" }):currentItem(-1)
 end))
+assert(htk.ComboboxBuilder.begin():items({}) ~= nil)
+assert(htk.SpinboxBuilder.begin():items({}) ~= nil)
+assert(not pcall(function()
+    htk.ComboboxBuilder.begin():items({ "one", 2 })
+end))
+assert(htk.SliderBuilder.begin():showLabel(false) ~= nil)
 
 assert(htk.ImageBuilder.begin():data("\137PNG\0binary") ~= nil)
 assert(htk.ImageBuilder.begin():data({ 0, 1, 127, 255 }) ~= nil)

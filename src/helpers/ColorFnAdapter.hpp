@@ -23,17 +23,18 @@ inline colorFn luaToColorFn(const sol::object& obj, std::string_view context = "
     }
 
     if (obj.is<sol::protected_function>()) {
-        sol::protected_function function = obj.as<sol::protected_function>();
-        return [function = std::move(function), context = std::string{context}]() -> CHyprColor {
-            sol::protected_function_result result = function();
-            if (!result.valid()) {
-                const sol::error error = result;
+        return [function = CLuaCallback{obj.as<sol::protected_function>()}, context = std::string{context}]() -> CHyprColor {
+            std::optional<sol::protected_function_result> result = function.call();
+            if (!result)
+                return CHyprColor{0.F, 0.F, 0.F, 1.F};
+            if (!result->valid()) {
+                const sol::error error = *result;
                 reportLuaCallbackError(context, error.what());
                 return CHyprColor{0.F, 0.F, 0.F, 1.F};
             }
 
             try {
-                return result.get<CHyprColor>();
+                return result->get<CHyprColor>();
             } catch (const std::exception& error) {
                 reportLuaCallbackError(context, error.what());
                 return CHyprColor{0.F, 0.F, 0.F, 1.F};

@@ -3,6 +3,7 @@
 #include <hyprtoolkit/types/PointerShape.hpp>
 #include <sol/sol.hpp>
 
+#include "../helpers/AnimationAdapter.hpp"
 #include "../helpers/CallbackAdapter.hpp"
 #include "../helpers/ElementAdapter.hpp"
 #include "../helpers/SmartPtrAdapter.hpp"
@@ -45,40 +46,67 @@ void registerElement(sol::table& module) {
         sol::overload(static_cast<void (IElement::*)(bool)>(&IElement::setGrow), static_cast<void (IElement::*)(bool, bool)>(&IElement::setGrow)), "setReceivesMouse",
         &IElement::setReceivesMouse, "setMouseEnter",
         [](IElement& self, sol::protected_function callback) {
-            self.setMouseEnter([callback = std::move(callback)](const Vector2D& position) {
+            self.setMouseEnter([callback = CLuaCallback{std::move(callback)}](const Vector2D& position) {
                 invokeLuaCallback(callback, "Element.setMouseEnter", position);
             });
         },
         "setMouseLeave",
         [](IElement& self, sol::protected_function callback) {
-            self.setMouseLeave([callback = std::move(callback)]() {
+            self.setMouseLeave([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Element.setMouseLeave");
             });
         },
         "setMouseMove",
         [](IElement& self, sol::protected_function callback) {
-            self.setMouseMove([callback = std::move(callback)](const Vector2D& position) {
+            self.setMouseMove([callback = CLuaCallback{std::move(callback)}](const Vector2D& position) {
                 invokeLuaCallback(callback, "Element.setMouseMove", position);
             });
         },
         "setMouseButton",
         [](IElement& self, sol::protected_function callback) {
-            self.setMouseButton([callback = std::move(callback)](Input::eMouseButton button, bool pressed) {
+            self.setMouseButton([callback = CLuaCallback{std::move(callback)}](Input::eMouseButton button, bool pressed) {
                 invokeLuaCallback(callback, "Element.setMouseButton", button, pressed);
             });
         },
         "setMouseAxis",
         [](IElement& self, sol::protected_function callback) {
-            self.setMouseAxis([callback = std::move(callback)](Input::eAxisAxis axis, float delta) {
+            self.setMouseAxis([callback = CLuaCallback{std::move(callback)}](Input::eAxisAxis axis, float delta) {
                 invokeLuaCallback(callback, "Element.setMouseAxis", axis, delta);
+            });
+        },
+        "setReceivesTouch", &IElement::setReceivesTouch, "setTouchDown",
+        [](IElement& self, sol::protected_function callback) {
+            self.setTouchDown([callback = CLuaCallback{std::move(callback)}](const Input::STouchEvent& event) {
+                invokeLuaCallback(callback, "Element.setTouchDown", event);
+            });
+        },
+        "setTouchMotion",
+        [](IElement& self, sol::protected_function callback) {
+            self.setTouchMotion([callback = CLuaCallback{std::move(callback)}](const Input::STouchEvent& event) {
+                invokeLuaCallback(callback, "Element.setTouchMotion", event);
+            });
+        },
+        "setTouchUp",
+        [](IElement& self, sol::protected_function callback) {
+            self.setTouchUp([callback = CLuaCallback{std::move(callback)}](const Input::STouchEvent& event) {
+                invokeLuaCallback(callback, "Element.setTouchUp", event);
+            });
+        },
+        "setTouchCancel",
+        [](IElement& self, sol::protected_function callback) {
+            self.setTouchCancel([callback = CLuaCallback{std::move(callback)}](const Input::STouchEvent& event) {
+                invokeLuaCallback(callback, "Element.setTouchCancel", event);
             });
         },
         "setRepositioned",
         [](IElement& self, sol::protected_function callback) {
-            self.setRepositioned([callback = std::move(callback)]() {
+            self.setRepositioned([callback = CLuaCallback{std::move(callback)}]() {
                 invokeLuaCallback(callback, "Element.setRepositioned");
             });
-        });
+        },
+        "setOpacity", &IElement::setOpacity, "animateOpacity",
+        [](IElement& self, const sol::object& animation) { self.animateOpacity(luaToAnimation(animation, "Element.animateOpacity")); }, "animateGeometry",
+        [](IElement& self, const sol::object& animation) { self.animateGeometry(luaToAnimation(animation, "Element.animateGeometry")); });
 }
 
 } // namespace Hyprtoolkit::Lua
